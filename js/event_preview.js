@@ -67,52 +67,23 @@
                     dayLabel = d.toLocaleDateString('es-ES', { weekday: 'short' }).toUpperCase().replace('.','');
                     dayNumber = String(d.getDate());
                 }
-            } catch(e) {}
-
+            } catch(e){}
             // If rendering inside the real calendar, FullCalendar already shows the day number.
             // Avoid duplicating the date header when `ev.isCalendar` is truthy.
             const showDateHeader = !(ev && ev.isCalendar);
 
             if (calMode === 'default' || calMode === 'point' || calMode === undefined) {
                 const cardHTML = window.getCardHTML ? window.getCardHTML(cm, c, ic, nm) : '';
-                html = `
-                    <div class="w-full h-full p-2 flex flex-col justify-between">
-                            ${ showDateHeader ? (`<div class="flex justify-between items-start"><span class="text-[8px] font-bold text-gray-400 uppercase">${dayLabel}</span><span class="text-sm font-black text-gray-800">${dayNumber}</span></div>`) : '' }
-                        <div class="flex flex-col gap-0.5">
-                            ${cardHTML}
-                            <div class="w-3/4 h-1 bg-gray-100 rounded opacity-50"></div>
-                        </div>
-                    </div>`;
+                html = `${cardHTML}`;
             } else if (calMode === 'badge') {
-                html = `
-                    <div class="w-full h-full p-2 flex flex-col bg-white">
-                            ${ showDateHeader ? (`<div class="flex justify-between items-start mb-1"><span class="text-[8px] font-bold text-gray-400 uppercase">${dayLabel}</span><span class="text-sm font-black text-gray-800">${dayNumber}</span></div>`) : '' }
-                        <div class="w-fit max-w-full py-0.5 px-2 rounded-full mb-1 text-[7px] font-bold text-white flex items-center gap-1 shadow-sm" style="background-color:${c}">
-                            <i class="ph-fill ph-${ic}"></i> ${nm}
-                        </div>
-                        <div class="w-full h-2 rounded bg-gray-50 border border-gray-100 mt-auto"></div>
-                    </div>`;
+                // Badge: solo el badge, sin wrappers
+                html = `<div class="w-fit max-w-full py-0.5 px-2 rounded-full text-[7px] font-bold text-white flex items-center gap-1 shadow-sm" style="background-color:${c}"><i class="ph-fill ph-${ic}"></i> ${nm}</div>`;
             } else if (calMode === 'background') {
-                html = `
-                    <div class="w-full h-full p-2 flex flex-col justify-between relative overflow-hidden" style="background-color: ${bgRgba(c,0.15)};">
-                        <div class="flex justify-between items-start z-10 relative">
-                            <span class="text-[8px] font-black opacity-60" style="color:${c}">MIÉ</span>
-                            <span class="text-sm font-black" style="color:${c}">24</span>
-                        </div>
-                        <div class="absolute inset-0 flex items-center justify-center opacity-20"><i class="ph ph-${ic} text-4xl transform -rotate-12" style="color:${c}"></i></div>
-                        <div class="absolute bottom-1 right-1 text-[6px] font-bold uppercase opacity-80" style="color: ${c}">${nm}</div>
-                    </div>`;
+                // Fondo completo: solo el fondo y el icono/label, sin wrappers
+                html = `<div class="absolute inset-0 flex items-center justify-center opacity-20 pointer-events-none"><i class="ph ph-${ic} text-4xl transform -rotate-12" style="color:${c}"></i></div><div class="absolute bottom-1 right-1 text-[6px] font-bold uppercase opacity-80 pointer-events-none" style="color: ${c}">${nm}</div>`;
             } else if (calMode === 'banner') {
-                html = `
-                    <div class="w-full h-full flex flex-col bg-white">
-                        <div class="h-4 w-full flex items-center justify-between px-1 shadow-sm z-10" style="background-color:${c}">
-                            <span class="text-[6px] font-bold text-white uppercase tracking-wider flex items-center gap-1"><i class="ph-bold ph-${ic}"></i> ${nm}</span>
-                        </div>
-                        <div class="p-2 relative flex-1">
-                            ${ showDateHeader ? (`<div class="flex justify-between items-start opacity-30 mb-1"><span class="text-[8px] font-black">${dayLabel}</span><span class="text-sm font-black">${dayNumber}</span></div>`) : '' }
-                            <div class="bg-gray-100 p-0.5 rounded w-3/4 mb-1 h-1"></div>
-                        </div>
-                    </div>`;
+                // Banner: solo la cinta, sin wrappers
+                html = `<div class="h-4 w-full flex items-center justify-between px-1 shadow-sm z-10" style="background-color:${c}"><span class="text-[6px] font-bold text-white uppercase tracking-wider flex items-center gap-1"><i class="ph-bold ph-${ic}"></i> ${nm}</span></div>`;
             } else {
                 // Fallback to card
                 const cardHTML = window.getCardHTML ? window.getCardHTML(cm, c, ic, nm) : '';

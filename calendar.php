@@ -32,7 +32,7 @@ $isAdmin = isset($_SESSION['user_role']) && in_array($_SESSION['user_role'], ['a
         .fc-theme-standard td, .fc-theme-standard th { border-color: #F1F5F9; }
         .fc-scrollgrid { border: none !important; }
         .fc-daygrid-day-frame { padding: 0 !important; min-height: 140px; display: flex; flex-direction: column; position: relative; overflow: visible; }
-        .fc-daygrid-day-top { flex-direction: row; justify-content: flex-end; padding: 6px 8px; z-index: 30; position: relative; }
+        .fc-daygrid-day-top { flex-direction: row; justify-content: flex-end; z-index: 30; position: relative; }
         .fc-daygrid-day-number { color: #64748b; font-weight: 800; font-size: 0.85rem; text-decoration: none !important; text-shadow: 0 1px 0 rgba(255,255,255,0.9); z-index: 30; }
         
         /* Día actual */
@@ -75,17 +75,18 @@ $isAdmin = isset($_SESSION['user_role']) && in_array($_SESSION['user_role'], ['a
         /* Altura mínima uniforme para celdas: usar min-height para no romper layout responsivo */
         #calendar { --fc-day-height: 130px; }
         #calendar .fc-daygrid-day-frame.fc-scrollgrid-sync-inner {
-            min-height: var(--fc-day-height) !important;
+            min-height: 90px !important;
             display: flex;
             flex-direction: column;
             align-items: stretch;
             justify-content: flex-start;
-            padding-top: 44px !important; /* más espacio reservado para la cinta */
+            /* padding-top eliminado para mayor compacidad */
             overflow: visible;
         }
 
         /* Número del día: scoped al calendario y más protagonista */
         #calendar .fc-daygrid-day-top { z-index: 40; position: relative; }
+        #calendar .fc-daygrid-day-top { display: initial !important; padding: 0 !important; }
         #calendar .fc-daygrid-day-number {
             color: #111827; /* slate-900 */
             font-weight: 800;
