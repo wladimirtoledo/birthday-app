@@ -1,5 +1,5 @@
 <?php
-// index.php sssmejoras pilas
+// index.php
 require_once 'includes/functions.php';
 $isGuest = !isset($_SESSION['user_id']);
 
