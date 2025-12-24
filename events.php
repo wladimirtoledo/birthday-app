@@ -138,7 +138,8 @@ $currentUserId = $userId;
     <!-- INCLUIR MODAL -->
     <?php include 'includes/events_modal_partial.php'; ?>
 
-    <script src="js/render_event_card.js"></script>
+    <script src="js/event_preview.js"></script>
+    <script src="js/render_event_card_clean.js"></script>
 
     <!-- JAVASCRIPT LOGIC -->
     <script>
@@ -190,7 +191,7 @@ $currentUserId = $userId;
             const isBirthday = ev.type === 'birthday' || ev.type === 'birthday';
 
             const canEdit = !!ev.editable;
-            const editBtn = canEdit ? `<button onclick="openEditModal(${JSON.stringify(ev.id)})" class="absolute top-2 right-2 text-gray-400 hover:text-indigo-600 p-1.5 bg-white/90 rounded-full shadow-sm border border-gray-100 transition hover:scale-110 z-20" title="Modificar"><i class="ph-bold ph-pencil-simple text-lg"></i></button>` : '';
+            const editBtn = canEdit ? `<button onclick="openEditModal(${JSON.stringify(ev.id)})" class="ml-2 text-gray-500 hover:text-indigo-600 p-1.5 bg-white rounded-lg transition shadow-sm border border-gray-100" title="Modificar"><i class="ph-bold ph-pencil-simple text-lg"></i></button>` : '';
             const authorBadge = ((isAdmin || isMod) && !isBirthday) ? `<div class="text-[10px] text-gray-400 mt-2 pt-2 border-t border-gray-100 flex items-center"><i class="ph-bold ph-user mr-1"></i> ${ev.creator_name || 'Sistema'}</div>` : '';
 
             // Imagen base
@@ -237,8 +238,20 @@ $currentUserId = $userId;
                     break;
 
                 case 'banner':
+                    html = `
+                    <div class="fade-in group rounded-lg overflow-hidden relative mb-3 bg-white border border-gray-100 shadow-sm">
+                        <div class="h-8 w-full flex items-center justify-between px-3 py-1" style="background-color:${color}">
+                            <span class="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2"><i class="ph-bold ph-${icon}"></i> ${title}</span>
+                            <span class="text-[10px] text-white/80">${ev.type_name || ''} • ${new Date(ev.start).toLocaleDateString('es-ES', {weekday:'short', day:'numeric'})}</span>
+                        </div>
+                        <div class="p-3">
+                            <div class="text-sm text-gray-700">${ev.description ? ev.description.substring(0,120) : ''}</div>
+                        </div>
+                        ${editBtn}
+                    </div>`;
+                    break;
+
                 case 'important':
-                    // Banner: imagen de ancho completo con overlay de título
                     html = `
                     <div class="fade-in group rounded-xl overflow-hidden relative mb-3">
                         ${ hasImage ? `<div class="h-36 w-full overflow-hidden">${imgTag}</div>` : `<div class="h-24 w-full" style="background:${color}"></div>` }
@@ -252,10 +265,12 @@ $currentUserId = $userId;
 
                 case 'badge':
                     html = `
-                    <div class="fade-in group inline-flex items-center bg-white rounded-full px-3 py-2 shadow-sm border border-gray-100" style="border-left:4px solid ${color};">
-                        <span class="text-[10px] font-bold mr-3" style="${badgeStyle}"><i class="ph-bold ph-${icon}"></i></span>
-                        <div class="text-sm font-medium truncate max-w-[180px]">${title}</div>
-                        ${editBtn}
+                    <div class="fade-in group bg-white rounded-lg mb-3 shadow-sm border border-gray-100 w-full" style="border-left:4px solid ${color};">
+                        <div class="p-3 flex items-center gap-3">
+                            <span class="badge-responsive flex-shrink-0 flex items-center justify-center text-[12px] font-bold px-3 py-1 rounded-md" style="${badgeStyle}"><i class="ph-bold ph-${icon}"></i></span>
+                            <div class="text-sm font-medium whitespace-normal">${title}</div>
+                            ${editBtn}
+                        </div>
                     </div>`;
                     break;
 

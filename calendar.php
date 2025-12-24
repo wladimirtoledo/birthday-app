@@ -19,7 +19,8 @@ $isAdmin = isset($_SESSION['user_role']) && in_array($_SESSION['user_role'], ['a
     <!-- FullCalendar v6 -->
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
     <script src='https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.10/locales/es.global.min.js'></script>
-    <script src="js/render_event_card.js"></script>
+    <script src="js/event_preview.js"></script>
+    <script src="js/render_event_card_clean.js"></script>
     <style>
         /* --- ESTILOS VISUALES --- */
         #calendar-container {
@@ -30,7 +31,7 @@ $isAdmin = isset($_SESSION['user_role']) && in_array($_SESSION['user_role'], ['a
         /* Celdas y Estructura */
         .fc-theme-standard td, .fc-theme-standard th { border-color: #F1F5F9; }
         .fc-scrollgrid { border: none !important; }
-        .fc-daygrid-day-frame { padding: 0 !important; min-height: 120px; display: flex; flex-direction: column; position: relative; }
+        .fc-daygrid-day-frame { padding: 0 !important; min-height: 140px; display: flex; flex-direction: column; position: relative; overflow: visible; }
         .fc-daygrid-day-top { flex-direction: row; justify-content: flex-end; padding: 6px 8px; z-index: 30; position: relative; }
         .fc-daygrid-day-number { color: #64748b; font-weight: 800; font-size: 0.85rem; text-decoration: none !important; text-shadow: 0 1px 0 rgba(255,255,255,0.9); z-index: 30; }
         
@@ -39,11 +40,109 @@ $isAdmin = isset($_SESSION['user_role']) && in_array($_SESSION['user_role'], ['a
         .fc-day-today .fc-daygrid-day-number { background-color: #4F46E5; color: white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; text-shadow: none; }
 
         /* Eventos */
-        .fc-daygrid-day-events { margin: 0 !important; padding-bottom: 2px; z-index: 20; }
-        .fc-event { background: transparent !important; border: none !important; box-shadow: none !important; margin: 1px 0 !important; cursor: pointer; border-radius: 0 !important; }
+        .fc-daygrid-day-events { margin: 0 !important; padding-bottom: 2px; z-index: 20; display: block; }
+        .fc-event { background: transparent !important; border: none !important; box-shadow: none !important; margin: 4px 0 !important; cursor: pointer; border-radius: 0 !important; overflow: visible !important; }
         .fc-event-main { width: 100%; overflow: visible; }
         .fc-daygrid-event-dot, .fc-event-time { display: none !important; }
         .fc-bg-event { opacity: 1 !important; z-index: 1 !important; background: transparent !important; }
+
+        /* Banner-specific: cuando un evento es 'banner' queremos que ocupe el tope del día */
+        .fc-event.banner-mode { position: absolute !important; left: 0; right: 0; top: 0; z-index: 25; border-radius: 0 !important; }
+        .fc-daygrid-day-frame .fc-event.banner-mode { margin: 0 !important; }
+
+        /* Ajustes: colocar la cinta (banner) POR ENCIMA del recuadro del día
+           y darle aspecto de título; scoped por #calendar para no afectar otras pantallas */
+        #calendar .fc-daygrid-day-frame { position: relative; }
+
+        /* Ubicar la cinta justo encima del contenedor .fc-daygrid-day-top (como encabezado).
+           Usamos un offset positivo pequeño (no negativo) y reservamos más espacio en la celda. */
+        #calendar .fc-event.banner-mode {
+            position: absolute !important;
+            left: 8px !important;
+            right: 8px !important;
+            top: 8px !important; /* mantener la cinta dentro del flujo visual pero sin tapar el número */
+            z-index: 60 !important;
+            border-radius: 0.5rem !important;
+            box-shadow: 0 6px 12px rgba(15,23,42,0.06);
+            padding: 6px 10px !important;
+            font-size: 0.92rem !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            background-clip: padding-box !important;
+        }
+
+        /* Altura mínima uniforme para celdas: usar min-height para no romper layout responsivo */
+        #calendar { --fc-day-height: 130px; }
+        #calendar .fc-daygrid-day-frame.fc-scrollgrid-sync-inner {
+            min-height: var(--fc-day-height) !important;
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            justify-content: flex-start;
+            padding-top: 44px !important; /* más espacio reservado para la cinta */
+            overflow: visible;
+        }
+
+        /* Número del día: scoped al calendario y más protagonista */
+        #calendar .fc-daygrid-day-top { z-index: 40; position: relative; }
+        #calendar .fc-daygrid-day-number {
+            color: #111827; /* slate-900 */
+            font-weight: 800;
+            font-size: 1.02rem;
+            margin-left: 6px;
+            padding: 4px 6px;
+            border-radius: 0.45rem;
+            background: transparent;
+        }
+
+        /* Día actual: círculo más grande y visible */
+        #calendar .fc-day-today .fc-daygrid-day-number {
+            background-color: #4F46E5;
+            color: white;
+            width: 32px;
+            height: 32px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            font-weight: 900;
+            font-size: 1rem;
+            box-shadow: 0 6px 12px rgba(79,70,229,0.12);
+        }
+
+        /* Área de eventos: scroll dentro del espacio restante de la celda */
+        #calendar .fc-daygrid-day-events {
+            margin-top: 6px !important;
+            padding: 6px 8px !important;
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 6px !important;
+            flex: 1 1 auto;
+            overflow: auto;
+        }
+
+        /* Compactar tarjetas SOLO dentro del calendario (mantener estilos fuente en event_types.php) */
+        #calendar .fc-event .fade-in,
+        #calendar .fc-event .group,
+        #calendar .fc-event > div {
+            padding: 8px !important;
+            font-size: 13px !important;
+            border-radius: 0.45rem !important;
+        }
+
+        /* Reducir imágenes/avatares dentro de las tarjetas del calendario */
+        #calendar .fc-event img { max-height:44px !important; max-width:44px !important; height:44px !important; width:44px !important; object-fit:cover !important; }
+
+        /* Badges dentro del calendario: ocupar todo el ancho y ser legibles */
+        #calendar .fc-event .badge-responsive { padding: 6px 8px !important; font-size: 12px !important; display: block !important; width: calc(100% - 4px) !important; box-sizing: border-box !important; }
+
+        /* Evitar que la cinta empuje o tape el área de eventos: si existe la cinta ajustamos margen superior */
+        #calendar .fc-daygrid-day-frame .fc-event.banner-mode + .fc-daygrid-day-events,
+        #calendar .fc-daygrid-day-frame .banner-mode ~ .fc-daygrid-day-events { margin-top: 6px !important; }
+
+        /* Badge adjustments */
+        .fc-event .badge-inline { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; white-space: normal; }
 
         /* UI */
         .fc-col-header-cell-cushion { color: #4F46E5; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em; padding: 12px 0; }
@@ -101,7 +200,7 @@ $isAdmin = isset($_SESSION['user_role']) && in_array($_SESSION['user_role'], ['a
                         <span class="text-2xl font-black leading-none" id="modalDay">00</span>
                     </div>
                     <div>
-                        <span id="modalBadge" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 uppercase tracking-wide border border-gray-200 inline-flex items-center gap-1 mb-1"><i id="modalIcon"></i> <span id="modalType">Tipo</span></span>
+                        <span id="modalBadge" class="badge-responsive inline-flex text-[10px] font-bold px-2 py-1 rounded-lg bg-gray-100 text-gray-500 uppercase tracking-wide border border-gray-200 items-center gap-1 mb-1"><i id="modalIcon"></i> <span id="modalType">Tipo</span></span>
                         <h2 class="text-lg font-bold text-gray-900 leading-snug line-clamp-2" id="modalTitle">Título</h2>
                         <!-- Rango horario si existe -->
                         <p id="modalTimeRange" class="text-xs text-gray-500 mt-1 font-medium hidden"></p>
@@ -183,12 +282,15 @@ $isAdmin = isset($_SESSION['user_role']) && in_array($_SESSION['user_role'], ['a
             try {
                 const res = await fetch('public/api/types.php?action=list');
                 const types = await res.json();
+                // cache global para consistencia visual en el calendario
+                window.typesCache = Array.isArray(types) ? types : [];
                 const sel = document.getElementById('eTypeSelect');
                 if (sel && Array.isArray(types)) sel.innerHTML = types.filter(t => t.slug !== 'birthday').map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+                return window.typesCache;
             } catch(e){}
         }
 
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', async function() {
             var calendarEl = document.getElementById('calendar');
             const today = new Date(); const diff = today.getDate() - today.getDay() - 6; const startDate = new Date(today.setDate(diff));
 
@@ -208,11 +310,19 @@ $isAdmin = isset($_SESSION['user_role']) && in_array($_SESSION['user_role'], ['a
                         const response = await fetch(`public/api/events.php?action=get_all&context=calendar&start_date=${info.startStr}&end_date=${info.endStr}`);
                         const data = await response.json();
                         const events = (Array.isArray(data)?data:(data.data||[])).map(ev => {
-                            let display = ev.display_mode === 'background' ? 'background' : 'block';
-                            return { 
-                                ...ev, display: display, backgroundColor: ev.color, borderColor: ev.color, 
-                                extendedProps: { mode: ev.display_mode||'block', icon: ev.icon||'circle', type_name: ev.type_name, type_color: ev.type_color||ev.color, age: ev.age, image_url: ev.image_url, ...ev } 
-                            };
+                                    // Respetar display_mode del tipo (fallback a 'block')
+                                    const mode = ev.display_mode || ev.type || 'block';
+                                    const display = (mode === 'background') ? 'background' : 'auto';
+                                    return { 
+                                        id: ev.id,
+                                        title: ev.title,
+                                        start: ev.start || ev.event_date,
+                                        allDay: !!ev.allDay,
+                                        display: display,
+                                        backgroundColor: ev.color,
+                                        borderColor: ev.color,
+                                        extendedProps: Object.assign({ mode: mode, icon: ev.icon||'circle', type_name: ev.type_name, type_color: ev.type_color||ev.color, age: ev.age, image_url: ev.image_url }, ev)
+                                    };
                         });
                         successCallback(events);
                     } catch (error) { failureCallback(); }
@@ -220,13 +330,11 @@ $isAdmin = isset($_SESSION['user_role']) && in_array($_SESSION['user_role'], ['a
 
                 // 2. RENDERIZADO VISUAL
                 eventContent: function(arg) {
-                    if (typeof window.renderEventCard !== 'function') return { html: '' };
                     const props = arg.event.extendedProps || {};
-                    const ev = {
-                        ...props,
+                    const ev = Object.assign({}, props, {
                         title: arg.event.title,
                         start: arg.event.startStr,
-                        event_date: arg.event.startStr.split('T')[0],
+                        event_date: arg.event.startStr ? arg.event.startStr.split('T')[0] : (props.event_date || ''),
                         id: arg.event.id,
                         display_mode: props.mode || 'block',
                         color: arg.event.backgroundColor,
@@ -236,20 +344,64 @@ $isAdmin = isset($_SESSION['user_role']) && in_array($_SESSION['user_role'], ['a
                         description: props.description,
                         age: props.age,
                         isCalendar: true
-                    };
-                    const html = window.renderEventCard(ev) || '';
-                    return { html };
+                    });
+
+                    // Prefer the shared calendar-cell renderer if available
+                    try {
+                        if (typeof window.getCalendarCellHTML === 'function') {
+                            // Determine calMode vs cardMode
+                            const calMode = (ev.display_mode && ['badge','banner','background'].includes(ev.display_mode)) ? ev.display_mode : 'default';
+                            const cardMode = ev.card_view || ev.card_mode || ev.cardStyle || (ev.display_mode && !['badge','banner','background'].includes(ev.display_mode) ? ev.display_mode : 'block');
+                            const name = ev.type_name || ev.title || '';
+                            const color = ev.color || ev.type_color || arg.event.backgroundColor || '#6B7280';
+                            const icon = ev.icon || 'circle';
+                            const html = window.getCalendarCellHTML(calMode, cardMode, color, icon, name, ev) || '';
+                            // For banner, keep wrapper marker for eventDidMount adjustments
+                            if (calMode === 'banner') return { html: `<div class="banner-wrapper">${html}</div>` };
+                            return { html };
+                        }
+                    } catch(e) { /* fall back to existing renderer */ }
+
+                    // Fallback to legacy renderer if shared function not available
+                    if (typeof window.renderEventCard === 'function') {
+                        const html = window.renderEventCard(ev) || '';
+                        if (ev.display_mode === 'banner') return { html: `<div class="banner-wrapper">${html}</div>` };
+                        return { html };
+                    }
+                    return { html: '' };
                 },
 
                 // 3. BACKGROUND
                 eventDidMount: function(info) {
-                    if (info.event.display === 'background') {
-                        const props = info.event.extendedProps;
-                        const color = info.event.backgroundColor;
-                        const icon = props.icon;
-                        const bgRgba = hexToRgba(color, 0.15);
+                    const props = info.event.extendedProps || {};
+                    // BACKGROUND mode (full cell background)
+                    if (props.mode === 'background' || info.event.display === 'background') {
+                        const color = info.event.backgroundColor || '#666';
+                        const icon = props.icon || 'circle';
+                        const bgRgba = hexToRgba(color, 0.12);
                         info.el.innerHTML = `<div class="w-full h-full relative overflow-hidden" style="background-color: ${bgRgba};"><div class="absolute inset-0 flex items-center justify-center opacity-15 pointer-events-none"><i class="ph ph-${icon} transform -rotate-12" style="font-size: 5rem; color: ${color};"></i></div><div class="absolute bottom-1 right-1 text-[9px] font-bold uppercase opacity-60 pointer-events-none" style="color: ${color}; padding: 2px 4px;">${props.type_name || 'Feriado'}</div></div>`;
                         info.el.style.opacity = '1'; info.el.style.pointerEvents = 'none';
+                        return;
+                    }
+
+                    // BANNER mode: position at top of cell and stretch full width
+                    if (props.mode === 'banner') {
+                        info.el.classList.add('banner-mode');
+                        // try to extract inner HTML from wrapper
+                        const inner = info.el.querySelector('.banner-wrapper');
+                        if (inner) info.el.innerHTML = inner.innerHTML;
+                        // adjust padding of day top so number isn't overlapped
+                        const dayCell = info.el.closest('.fc-daygrid-day-frame');
+                        if (dayCell) {
+                            dayCell.style.paddingTop = '28px';
+                        }
+                        return;
+                    }
+
+                    // BADGE adjustments: ensure pills use inline class
+                    if (props.mode === 'badge') {
+                        const inner = info.el.querySelector('div');
+                        if (inner) inner.classList.add('badge-inline');
                     }
                 },
 
@@ -328,7 +480,8 @@ $isAdmin = isset($_SESSION['user_role']) && in_array($_SESSION['user_role'], ['a
             document.getElementById('prevBtn').addEventListener('click', () => calendar.prev());
             document.getElementById('nextBtn').addEventListener('click', () => calendar.next());
             document.getElementById('todayBtn').addEventListener('click', () => calendar.today());
-            loadTypes();
+            // precargar tipos para consistencia visual
+            await loadTypes();
         });
 
         function closeModal() { document.getElementById('eventModal').classList.add('hidden'); }

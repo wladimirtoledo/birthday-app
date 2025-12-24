@@ -52,6 +52,58 @@
                         </div>
                     </div>
                 </div>
+                        <script>
+                            // Mejora UX: sincronizar fechas/horas en el modal para evitar que la fecha/hora fin quede antes
+                            (function(){
+                                function plusOneHour(timeStr){
+                                    if(!timeStr) return '';
+                                    const parts = timeStr.split(':');
+                                    if(parts.length < 2) return '';
+                                    let hh = parseInt(parts[0]||0), mm = parseInt(parts[1]||0);
+                                    let total = hh*60 + mm + 60;
+                                    if(total >= 24*60) total = 24*60 - 1; // 23:59 max
+                                    const nh = String(Math.floor(total/60)).padStart(2,'0');
+                                    const nm = String(total%60).padStart(2,'0');
+                                    return `${nh}:${nm}`;
+                                }
+
+                                const eDate = document.getElementById('eDate');
+                                const eEndDate = document.getElementById('eEndDate');
+                                const eStartTime = document.getElementById('eStartTime');
+                                const eEndTime = document.getElementById('eEndTime');
+
+                                if(eDate && eEndDate){
+                                    eDate.addEventListener('change', ()=>{
+                                        if(!eEndDate.value || eEndDate.value < eDate.value) eEndDate.value = eDate.value;
+                                    });
+                                    eEndDate.addEventListener('change', ()=>{
+                                        if(eEndDate.value < eDate.value) eEndDate.value = eDate.value;
+                                    });
+                                }
+
+                                if(eStartTime){
+                                    eStartTime.addEventListener('change', ()=>{
+                                        // Si no hay end time, sugerir +1h
+                                        if(eStartTime.value && (!eEndTime.value || (eEndDate && eEndDate.value === eDate.value && eStartTime.value > eEndTime.value))){
+                                            eEndTime.value = plusOneHour(eStartTime.value);
+                                        }
+                                    });
+                                }
+
+                                if(eEndTime){
+                                    eEndTime.addEventListener('change', ()=>{
+                                        // Si end es antes de start en mismo día, ajustar endDate
+                                        if(eStartTime && eEndDate && eDate && eEndDate.value === eDate.value && eStartTime.value && eEndTime.value && eEndTime.value < eStartTime.value){
+                                            // Mover endDate al menos un día después
+                                            const d = new Date(eDate.value + 'T00:00');
+                                            d.setDate(d.getDate()+1);
+                                            const newDate = d.toISOString().split('T')[0];
+                                            eEndDate.value = newDate;
+                                        }
+                                    });
+                                }
+                            })();
+                        </script>
 
                 <div>
                     <label class="block text-xs font-bold text-gray-700 mb-1 uppercase">Tipo de Evento</label>

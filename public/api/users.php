@@ -109,9 +109,11 @@ if (($action === 'save_user' || $action === 'update_profile') && $method === 'PO
     } else {
         // Mantener rol actual si se edita a sí mismo
         if ($targetId) {
-            $curr = $conn->query("SELECT role, status FROM users WHERE id=$targetId")->fetch();
-            $role = $curr['role'];
-            $status = $curr['status'];
+            $currStmt = $conn->prepare("SELECT role, status FROM users WHERE id = ?");
+            $currStmt->execute([$targetId]);
+            $curr = $currStmt->fetch(PDO::FETCH_ASSOC);
+            $role = $curr['role'] ?? 'user';
+            $status = $curr['status'] ?? 'banned_login';
         } else {
             // Nuevo registro por defecto (si llegara a pasar por aquí)
             $role = 'user';
@@ -119,15 +121,49 @@ if (($action === 'save_user' || $action === 'update_profile') && $method === 'PO
         }
     }
 
-    // Procesar Avatar
+    // Procesar Avatar (validación de tamaño y tipo, rechazar descargas inseguras)
     $avBlob = null;
+    $maxAvatarBytes = 2 * 1024 * 1024; // 2MB
+    $allowedImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+
     if (isset($_FILES['avatar']) && $_FILES['avatar']['error'] === 0) {
+        if ($_FILES['avatar']['size'] > $maxAvatarBytes) sendError('Avatar demasiado grande (máx 2MB).');
+        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+        $mime = finfo_file($finfo, $_FILES['avatar']['tmp_name']);
+        finfo_close($finfo);
+        if (!in_array($mime, $allowedImageTypes)) sendError('Tipo de avatar no permitido.');
         $avBlob = file_get_contents($_FILES['avatar']['tmp_name']);
     } elseif (!empty($_POST['avatar_url_input'])) {
         $url = $_POST['avatar_url_input'];
         if (filter_var($url, FILTER_VALIDATE_URL)) {
-            $c = @file_get_contents($url);
-            if ($c) $avBlob = $c;
+            $parts = parse_url($url);
+            if (!in_array(strtolower($parts['scheme'] ?? ''), ['http', 'https'])) sendError('URL de avatar inválida.');
+
+            $headers = @get_headers($url, 1);
+            if ($headers === false) sendError('No se pudo acceder a la URL del avatar.');
+
+            $contentType = '';
+            if (isset($headers['Content-Type'])) $contentType = is_array($headers['Content-Type']) ? end($headers['Content-Type']) : $headers['Content-Type'];
+            $contentLength = null;
+            if (isset($headers['Content-Length'])) $contentLength = is_array($headers['Content-Length']) ? end($headers['Content-Length']) : $headers['Content-Length'];
+
+            if ($contentType) {
+                $ct = explode(';', $contentType)[0];
+                if (!in_array($ct, $allowedImageTypes)) sendError('Tipo de imagen remoto no permitido.');
+            }
+            if ($contentLength !== null && (int)$contentLength > $maxAvatarBytes) sendError('Imagen remota demasiado grande.');
+
+            $ctx = stream_context_create(['http' => ['timeout' => 5], 'https' => ['timeout' => 5]]);
+            $c = @file_get_contents($url, false, $ctx);
+            if ($c === false) sendError('No se pudo descargar la imagen remota.');
+            if (strlen($c) > $maxAvatarBytes) sendError('Imagen remota demasiado grande.');
+
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            $detType = finfo_buffer($finfo, $c);
+            finfo_close($finfo);
+            if (!in_array($detType, $allowedImageTypes)) sendError('Tipo de imagen remoto no permitido.');
+
+            $avBlob = $c;
         }
     }
 
@@ -181,8 +217,9 @@ if ($action === 'get_users' && $method === 'GET') {
 
     $s = "%".($_GET['search']??'')."%";
     // Paginación calculada en common.php o aquí
-    $page = $_GET['page'] ?? 1;
-    $limit = $_GET['limit'] ?? 100;
+    $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+    $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 100;
+    if ($limit < 1) $limit = 100;
     $offset = ($page - 1) * $limit;
 
     // Query Data

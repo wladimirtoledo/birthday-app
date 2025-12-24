@@ -83,7 +83,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             echo json_encode(['success' => true, 'message' => 'Registro exitoso. Tu cuenta está pendiente de aprobación.']);
         } catch (Exception $e) {
-            echo json_encode(['success' => false, 'message' => 'Error al registrar: ' . $e->getMessage()]);
+            error_log('Register error: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Error al registrar usuario. Intente nuevamente más tarde.']);
         }
     }
     

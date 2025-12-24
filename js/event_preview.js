@@ -1,0 +1,126 @@
+// Shared event preview utilities
+(function(window){
+    function hexToRgba(hex, alpha) {
+        try{
+            let r=parseInt(hex.slice(1,3),16), g=parseInt(hex.slice(3,5),16), b=parseInt(hex.slice(5,7),16);
+            return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+        }catch(e){ return `rgba(107,114,128,${alpha})`; }
+    }
+
+    // Expose hexToRgba
+    window.hexToRgba = window.hexToRgba || hexToRgba;
+
+    // getCardHTML: shared card generator used by previews and renderers
+    if (typeof window.getCardHTML !== 'function') {
+        window.getCardHTML = function(cardMode, color, icon, name) {
+            let innerStyle = '', innerText = 'text-gray-700', innerIconColor = color;
+            let contentHTML = `<i class="ph ph-${icon}" style="color:${innerIconColor}"></i> <span style="${innerText}">${name}</span>`;
+
+            if (cardMode === 'block') { innerStyle=`background:#fff; border-left:3px solid ${color}; box-shadow:0 1px 2px rgba(0,0,0,0.05);`; }
+            else if (cardMode === 'subtle') { innerStyle=`background:${hexToRgba(color,0.15)}; color:${color}; border-left:3px solid ${color}; font-weight:600;`; innerText = `color:${color}`; contentHTML = `<i class="ph ph-${icon}" style="color:${color}"></i> <span style="color:${color}">${name}</span>`; }
+            else if (cardMode === 'gradient') { innerStyle=`background:linear-gradient(135deg,${color},#ffffff 180%); color:white; border:1px solid ${color};`; innerText = `color:white; text-shadow:0 1px 2px rgba(0,0,0,0.3);`; contentHTML = `<i class="ph ph-${icon}" style="color:white"></i> <span style="color:white; text-shadow:0 1px 2px rgba(0,0,0,0.3);">${name}</span>`; }
+            else if (cardMode === 'important') { innerStyle=`background:${color}; color:white; font-weight:bold; box-shadow:0 2px 4px rgba(0,0,0,0.15); border: 1px solid rgba(0,0,0,0.1); border-left: 3px solid rgba(0,0,0,0.3);`; contentHTML = `<i class="ph-fill ph-${icon}" style="color:white"></i> <span style="color:white">${name}</span>`; }
+            else if (cardMode === 'transparent') { innerStyle=`background:transparent; border:1px dashed ${color}; color:${color}; font-weight:500;`; innerText = `color:${color}`; contentHTML = `<i class="ph ph-${icon}" style="color:${color}"></i> <span style="color:${color}">${name}</span>`; }
+            else if (cardMode === 'photo') { innerStyle = `background: white; border-left: 3px solid ${color}; padding: 0; display: flex; align-items: center; overflow: hidden; box-shadow: 0 1px 2px rgba(0,0,0,0.1);`; contentHTML = `<div style="width: 20px; height: 20px; background-color: #f3f4f6; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><i class="ph-fill ph-image text-[10px] text-gray-400"></i></div><span style="padding: 0 4px; font-size: 7px; color: #374151;">${name}</span>`; }
+
+            else if (cardMode === 'detailed') {
+                innerStyle = `background: white; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.08); border: 1px solid #f1f5f9; border-left: 4px solid ${color}; padding: 4px; display: flex; align-items: center; gap: 8px; margin: 2px 0; min-height: 40px;`;
+                const bgIcon = hexToRgba(color, 0.15);
+                contentHTML = `
+                    <div style="width: 32px; height: 32px; border-radius: 50%; background-color: ${bgIcon}; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: ${color}; box-shadow: inset 0 0 0 1px ${color}20;">
+                        <i class="ph-fill ph-${icon} text-lg"></i>
+                    </div>
+                    <div style="display: flex; flex-direction: column; overflow: hidden; justify-content: center;">
+                        <span style="font-weight: 800; font-size: 0.8rem; color: #1e293b; line-height: 1.1;">${name}</span>
+                        <span style="font-size: 0.65rem; color: #64748b; margin-top: 1px;">Detalles...</span>
+                    </div>
+                `;
+            }
+
+            return `
+                <div class="w-full ${cardMode!=='photo'&&cardMode!=='detailed'?'p-1.5':''} rounded text-[7px] truncate flex items-center gap-1 transition-transform transform hover:scale-[1.02] cursor-pointer shadow-sm mb-1" style="${innerStyle}">
+                    ${contentHTML}
+                </div>`;
+        };
+    }
+
+    // getCalendarCellHTML: reproduce exact HTML used in event_types.php 'Resultado en Calendario'
+    if (typeof window.getCalendarCellHTML !== 'function') {
+        window.getCalendarCellHTML = function(calMode, cardMode, color, icon, name, ev) {
+            const nm = name || (ev && (ev.type_name || ev.title)) || 'Tipo';
+            const cm = cardMode || 'block';
+            const c = color || '#4F46E5';
+            const ic = icon || 'circle';
+
+            // Helper local
+            const bgRgba = (col, a) => {
+                try { let r=parseInt(col.slice(1,3),16), g=parseInt(col.slice(3,5),16), b=parseInt(col.slice(5,7),16); return `rgba(${r},${g},${b},${a})`; } catch(e){ return `rgba(79,70,229,${a})`; }
+            };
+
+            let html = '';
+            // compute day label/number from ev when available
+            let dayLabel = 'MIÉ';
+            let dayNumber = '24';
+            try {
+                if (ev && (ev.start || ev.event_date)) {
+                    const d = new Date(ev.start || ev.event_date);
+                    dayLabel = d.toLocaleDateString('es-ES', { weekday: 'short' }).toUpperCase().replace('.','');
+                    dayNumber = String(d.getDate());
+                }
+            } catch(e) {}
+
+            // If rendering inside the real calendar, FullCalendar already shows the day number.
+            // Avoid duplicating the date header when `ev.isCalendar` is truthy.
+            const showDateHeader = !(ev && ev.isCalendar);
+
+            if (calMode === 'default' || calMode === 'point' || calMode === undefined) {
+                const cardHTML = window.getCardHTML ? window.getCardHTML(cm, c, ic, nm) : '';
+                html = `
+                    <div class="w-full h-full p-2 flex flex-col justify-between">
+                            ${ showDateHeader ? (`<div class="flex justify-between items-start"><span class="text-[8px] font-bold text-gray-400 uppercase">${dayLabel}</span><span class="text-sm font-black text-gray-800">${dayNumber}</span></div>`) : '' }
+                        <div class="flex flex-col gap-0.5">
+                            ${cardHTML}
+                            <div class="w-3/4 h-1 bg-gray-100 rounded opacity-50"></div>
+                        </div>
+                    </div>`;
+            } else if (calMode === 'badge') {
+                html = `
+                    <div class="w-full h-full p-2 flex flex-col bg-white">
+                            ${ showDateHeader ? (`<div class="flex justify-between items-start mb-1"><span class="text-[8px] font-bold text-gray-400 uppercase">${dayLabel}</span><span class="text-sm font-black text-gray-800">${dayNumber}</span></div>`) : '' }
+                        <div class="w-fit max-w-full py-0.5 px-2 rounded-full mb-1 text-[7px] font-bold text-white flex items-center gap-1 shadow-sm" style="background-color:${c}">
+                            <i class="ph-fill ph-${ic}"></i> ${nm}
+                        </div>
+                        <div class="w-full h-2 rounded bg-gray-50 border border-gray-100 mt-auto"></div>
+                    </div>`;
+            } else if (calMode === 'background') {
+                html = `
+                    <div class="w-full h-full p-2 flex flex-col justify-between relative overflow-hidden" style="background-color: ${bgRgba(c,0.15)};">
+                        <div class="flex justify-between items-start z-10 relative">
+                            <span class="text-[8px] font-black opacity-60" style="color:${c}">MIÉ</span>
+                            <span class="text-sm font-black" style="color:${c}">24</span>
+                        </div>
+                        <div class="absolute inset-0 flex items-center justify-center opacity-20"><i class="ph ph-${ic} text-4xl transform -rotate-12" style="color:${c}"></i></div>
+                        <div class="absolute bottom-1 right-1 text-[6px] font-bold uppercase opacity-80" style="color: ${c}">${nm}</div>
+                    </div>`;
+            } else if (calMode === 'banner') {
+                html = `
+                    <div class="w-full h-full flex flex-col bg-white">
+                        <div class="h-4 w-full flex items-center justify-between px-1 shadow-sm z-10" style="background-color:${c}">
+                            <span class="text-[6px] font-bold text-white uppercase tracking-wider flex items-center gap-1"><i class="ph-bold ph-${ic}"></i> ${nm}</span>
+                        </div>
+                        <div class="p-2 relative flex-1">
+                            ${ showDateHeader ? (`<div class="flex justify-between items-start opacity-30 mb-1"><span class="text-[8px] font-black">${dayLabel}</span><span class="text-sm font-black">${dayNumber}</span></div>`) : '' }
+                            <div class="bg-gray-100 p-0.5 rounded w-3/4 mb-1 h-1"></div>
+                        </div>
+                    </div>`;
+            } else {
+                // Fallback to card
+                const cardHTML = window.getCardHTML ? window.getCardHTML(cm, c, ic, nm) : '';
+                html = cardHTML;
+            }
+
+            return html;
+        };
+    }
+
+})(window);

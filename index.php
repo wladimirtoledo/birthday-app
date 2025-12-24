@@ -25,7 +25,8 @@ $dateText = "$diaSemana, $diaNum de $mesNom de $anio";
     <!-- Iconos Phosphor -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="js/render_event_card.js"></script>
+    <script src="js/event_preview.js"></script>
+    <script src="js/render_event_card_clean.js"></script>
     <style>
         .custom-scroll::-webkit-scrollbar { width: 6px; }
         .custom-scroll::-webkit-scrollbar-track { background: #f1f1f1; }
@@ -214,9 +215,9 @@ $dateText = "$diaSemana, $diaNum de $mesNom de $anio";
                 <div class="rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 relative overflow-hidden group p-5 flex flex-col h-full" style="${style}">
                     ${(mode === 'background') ? `<i class="ph ph-${icon} absolute -right-6 -bottom-6 text-9xl opacity-10 transform -rotate-12 pointer-events-none" style="color:${color}"></i>` : ''}
                     
-                    <div class="flex justify-between items-start mb-2">
-                         <span class="inline-flex items-center px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wide" style="${badgeStyle}">
-                            <i class="ph-bold ph-${icon} mr-1.5"></i> ${ev.type_name || 'Evento'}
+                    <div class="mb-2">
+                         <span class="badge-responsive inline-flex items-center justify-between px-3 py-2 rounded-md text-[10px] font-bold uppercase tracking-wide" style="${badgeStyle}">
+                            <span class="flex items-center"><i class="ph-bold ph-${icon} mr-1.5"></i> ${ev.type_name || 'Evento'}</span>
                         </span>
                     </div>
 

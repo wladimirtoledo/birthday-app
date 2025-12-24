@@ -28,8 +28,19 @@ try {
     exit;
 }
 
-// 6. Sesión Global
-if (session_status() === PHP_SESSION_NONE) session_start();
+// 6. Sesión Global (asegurar parámetros de cookie antes de iniciar)
+if (session_status() === PHP_SESSION_NONE) {
+    $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || ($_SERVER['SERVER_PORT'] ?? 80) == 443;
+    session_set_cookie_params([
+        'lifetime' => 0,
+        'path' => '/',
+        'domain' => $_SERVER['HTTP_HOST'] ?? '',
+        'secure' => $secure,
+        'httponly' => true,
+        'samesite' => 'Lax'
+    ]);
+    session_start();
+}
 $userId = $_SESSION['user_id'] ?? 0;
 $userRole = $_SESSION['user_role'] ?? 'guest';
 

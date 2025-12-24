@@ -90,6 +90,21 @@ function isActive($pageName, $currentPage) {
     };
 </script>
 
+<style>
+    /* Badge responsive utility: full-width on small screens, inline on md+ */
+    .badge-responsive { box-sizing: border-box; }
+    /* Mobile: badges take full width */
+    @media (max-width: 767px) {
+        .badge-responsive { display: block !important; width: 100% !important; }
+        .badge-responsive .ph { margin-right: 0.5rem; }
+    }
+    /* Desktop: behave as inline-flex unless explicitly set block */
+    @media (min-width: 768px) {
+        .badge-responsive { display: inline-flex !important; width: auto !important; align-items: center; }
+    }
+    .badge-responsive.rounded-full { border-radius: 0.75rem !important; }
+</style>
+
 <nav class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
     <div class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between h-16">

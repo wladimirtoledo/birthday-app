@@ -70,7 +70,11 @@ if ($action === 'get_all' && $method === 'GET') {
     // Paginación (Solo para contexto management)
     $limitSql = "";
     if ($context === 'management') {
-        $page = $_GET['page']??1; $limit = $_GET['limit']??100; $offset = ($page-1)*$limit;
+        $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+        $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 100;
+        if ($page < 1) $page = 1;
+        if ($limit < 1) $limit = 100;
+        $offset = ($page - 1) * $limit;
         $limitSql = " LIMIT $limit OFFSET $offset";
     }
 
@@ -202,7 +206,51 @@ if ($action === 'save' && $method === 'POST') {
     // Si es privado se aprueba solo. Si es público y lo crea un admin/mod se aprueba solo.
     if ($vis === 'private' || in_array($userRole, ['admin', 'moderator'])) $st = 'approved';
 
-    $img = null; if(isset($_FILES['image'])&&$_FILES['image']['error']===0)$img=file_get_contents($_FILES['image']['tmp_name']); elseif(!empty($_POST['image_url_input'])){$c=@file_get_contents($_POST['image_url_input']);if($c)$img=$c;}
+    // Procesar imagen del evento (validación de tamaño y tipo)
+    $img = null;
+    $maxImageBytes = 5 * 1024 * 1024; // 5MB
+    $allowedImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+
+    if (isset($_FILES['image']) && $_FILES['image']['error'] === 0) {
+        if ($_FILES['image']['size'] > $maxImageBytes) sendError('Imagen demasiado grande (máx 5MB).');
+        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+        $mime = finfo_file($finfo, $_FILES['image']['tmp_name']);
+        finfo_close($finfo);
+        if (!in_array($mime, $allowedImageTypes)) sendError('Tipo de imagen no permitido.');
+        $img = file_get_contents($_FILES['image']['tmp_name']);
+    } elseif (!empty($_POST['image_url_input'])) {
+        $url = $_POST['image_url_input'];
+        if (filter_var($url, FILTER_VALIDATE_URL)) {
+            $parts = parse_url($url);
+            if (!in_array(strtolower($parts['scheme'] ?? ''), ['http', 'https'])) sendError('URL de imagen inválida.');
+
+            $headers = @get_headers($url, 1);
+            if ($headers === false) sendError('No se pudo acceder a la URL de la imagen.');
+
+            $contentType = '';
+            if (isset($headers['Content-Type'])) $contentType = is_array($headers['Content-Type']) ? end($headers['Content-Type']) : $headers['Content-Type'];
+            $contentLength = null;
+            if (isset($headers['Content-Length'])) $contentLength = is_array($headers['Content-Length']) ? end($headers['Content-Length']) : $headers['Content-Length'];
+
+            if ($contentType) {
+                $ct = explode(';', $contentType)[0];
+                if (!in_array($ct, $allowedImageTypes)) sendError('Tipo de imagen remoto no permitido.');
+            }
+            if ($contentLength !== null && (int)$contentLength > $maxImageBytes) sendError('Imagen remota demasiado grande.');
+
+            $ctx = stream_context_create(['http' => ['timeout' => 5], 'https' => ['timeout' => 5]]);
+            $c = @file_get_contents($url, false, $ctx);
+            if ($c === false) sendError('No se pudo descargar la imagen remota.');
+            if (strlen($c) > $maxImageBytes) sendError('Imagen remota demasiado grande.');
+
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            $detType = finfo_buffer($finfo, $c);
+            finfo_close($finfo);
+            if (!in_array($detType, $allowedImageTypes)) sendError('Tipo de imagen remoto no permitido.');
+
+            $img = $c;
+        }
+    }
     
     $legacyType = 'custom';
 
