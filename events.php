@@ -238,12 +238,16 @@ $currentUserId = $userId;
                     break;
 
                 case 'banner':
+                    let img = '';
+                    if (ev.image_url) {
+                        img = `<div class="w-full h-24 bg-gray-100 flex items-center justify-center overflow-hidden"><img src="${ev.image_url}" class="object-cover w-full h-full"></div>`;
+                    }
                     html = `
-                    <div class="fade-in group rounded-lg overflow-hidden relative mb-3 bg-white border border-gray-100 shadow-sm">
-                        <div class="h-8 w-full flex items-center justify-between px-3 py-1" style="background-color:${color}">
-                            <span class="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2"><i class="ph-bold ph-${icon}"></i> ${title}</span>
-                            <span class="text-[10px] text-white/80">${ev.type_name || ''} • ${new Date(ev.start).toLocaleDateString('es-ES', {weekday:'short', day:'numeric'})}</span>
+                    <div class="fade-in group shadow-sm bg-white overflow-hidden p-0 flex flex-col mb-3 cursor-pointer" onclick="showEventDetail(${ev.id})">
+                        <div class="h-4 w-full flex items-center justify-between px-1 shadow-sm z-10" style="background-color:${color}">
+                            <span class="text-[6px] font-bold text-white uppercase tracking-wider flex items-center gap-1"><i class="ph-bold ph-${icon}"></i> ${ev.type_name || title}</span>
                         </div>
+                        ${img}
                         <div class="p-3">
                             <div class="text-sm text-gray-700">${ev.description ? ev.description.substring(0,120) : ''}</div>
                         </div>

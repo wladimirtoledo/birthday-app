@@ -47,8 +47,8 @@ $isAdmin = isset($_SESSION['user_role']) && in_array($_SESSION['user_role'], ['a
         .fc-bg-event { opacity: 1 !important; z-index: 1 !important; background: transparent !important; }
 
         /* Banner-specific: cuando un evento es 'banner' queremos que ocupe el tope del día */
-        .fc-event.banner-mode { position: absolute !important; left: 0; right: 0; top: 0; z-index: 25; border-radius: 0 !important; }
-        .fc-daygrid-day-frame .fc-event.banner-mode { margin: 0 !important; }
+        /*.fc-event.banner-mode { position: absolute !important; left: 0; right: 0; top: 0; z-index: 25; border-radius: 0 !important; }
+        .fc-daygrid-day-frame .fc-event.banner-mode { margin: 0 !important; }*/
 
         /* Ajustes: colocar la cinta (banner) POR ENCIMA del recuadro del día
            y darle aspecto de título; scoped por #calendar para no afectar otras pantallas */
@@ -357,8 +357,8 @@ $isAdmin = isset($_SESSION['user_role']) && in_array($_SESSION['user_role'], ['a
                             const color = ev.color || ev.type_color || arg.event.backgroundColor || '#6B7280';
                             const icon = ev.icon || 'circle';
                             const html = window.getCalendarCellHTML(calMode, cardMode, color, icon, name, ev) || '';
-                            // For banner, keep wrapper marker for eventDidMount adjustments
-                            if (calMode === 'banner') return { html: `<div class="banner-wrapper">${html}</div>` };
+                            // For banner, return only the banner HTML (no wrapper)
+                            if (calMode === 'banner') return { html };
                             return { html };
                         }
                     } catch(e) { /* fall back to existing renderer */ }
@@ -385,16 +385,41 @@ $isAdmin = isset($_SESSION['user_role']) && in_array($_SESSION['user_role'], ['a
                         return;
                     }
 
-                    // BANNER mode: position at top of cell and stretch full width
+                    // BANNER mode: insert banner as first child of .fc-daygrid-day-frame (just after <td>, before day number)
                     if (props.mode === 'banner') {
-                        info.el.classList.add('banner-mode');
-                        // try to extract inner HTML from wrapper
-                        const inner = info.el.querySelector('.banner-wrapper');
-                        if (inner) info.el.innerHTML = inner.innerHTML;
-                        // adjust padding of day top so number isn't overlapped
+                        // Si el banner está envuelto en <a>, mantenerlo y solo moverlo
+                        if (info.el.tagName === 'A') {
+                            info.el.classList.add('cursor-pointer');
+                        } else {
+                            // Si no, envolver en <a> para click
+                            const wrapper = document.createElement('a');
+                            wrapper.className = 'cursor-pointer';
+                            wrapper.innerHTML = info.el.outerHTML;
+                            info.el.replaceWith(wrapper);
+                            info.el = wrapper;
+                        }
+                        // Insertar como primer hijo del frame
+                        const frame = info.el.closest('.fc-daygrid-day-frame');
+                        if (frame) {
+                            frame.insertBefore(info.el, frame.firstChild);
+                            frame.style.paddingTop = '28px';
+                        }
+                        return;
+                    }
+
+                    // BADGE mode: insert just after the day number, not covering it
+                    if (props.mode === 'badge') {
+                        const inner = info.el.querySelector('div');
+                        if (inner) inner.classList.add('badge-inline');
                         const dayCell = info.el.closest('.fc-daygrid-day-frame');
-                        if (dayCell) {
-                            dayCell.style.paddingTop = '28px';
+                        const dayTop = dayCell ? dayCell.querySelector('.fc-daygrid-day-top') : null;
+                        if (dayCell && dayTop) {
+                            // Insert badge right after the day number
+                            if (dayTop.nextSibling) {
+                                dayCell.insertBefore(info.el, dayTop.nextSibling);
+                            } else {
+                                dayCell.appendChild(info.el);
+                            }
                         }
                         return;
                     }

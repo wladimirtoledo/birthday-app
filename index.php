@@ -151,84 +151,23 @@ $dateText = "$diaSemana, $diaNum de $mesNom de $anio";
             }
 
             container.innerHTML = events.map(ev => {
-                // Usar el renderer centralizado si está disponible
-                if (typeof window.renderEventCard === 'function') {
+                    // Usar el renderer centralizado si está disponible
+                    if (typeof window.renderEventCard === 'function') {
+                        // Si es banner, renderizar como div limpio tipo franja
+                        if ((ev.display_mode || '').toLowerCase() === 'banner') {
+                            const color = ev.color || '#fb0e0e';
+                            const icon = ev.icon || 'heart';
+                            const name = ev.type_name || ev.title || '';
+                            let img = '';
+                            if (ev.image_url) {
+                                img = `<div class=\"w-full h-24 bg-gray-100 flex items-center justify-center overflow-hidden\"><img src=\"${ev.image_url}\" class=\"object-cover w-full h-full\"></div>`;
+                            }
+                            // Card clickable
+                            return `<div class=\"shadow-sm bg-white overflow-hidden group p-0 flex flex-col h-full cursor-pointer\" onclick=\"showEventDetail(${ev.id})\">\n                            <div class=\"h-4 w-full flex items-center justify-between px-1 shadow-sm z-10\" style=\"background-color:${color}\">\n                                <span class=\"text-[6px] font-bold text-white uppercase tracking-wider flex items-center gap-1\"><i class=\"ph-bold ph-${icon}\"></i> ${name}</span>\n                            </div>\n                            ${img}\n                        </div>`;
+                    }
                     return window.renderEventCard(ev);
                 }
-                
-                // Fallback manual si no carga el script
-                const mode = ev.display_mode || 'block';
-                const color = ev.color || '#6B7280';
-                const icon = ev.icon || 'circle';
-                const title = ev.title.replace('⏳ ','').replace('🎂 ','');
-                const isBirthday = ev.type === 'birthday';
-                
-                let style = '', badgeStyle = '', titleColor = '#1F2937';
-                
-                // 1. CUMPLEAÑOS / DETALLADO (Diseño Grande)
-                if (isBirthday || mode === 'detailed' || mode === 'photo') {
-                     let avatar = '';
-                     if (ev.image_url) {
-                         avatar = `<img src="${ev.image_url}" class="w-14 h-14 ${isBirthday?'rounded-full':'rounded-lg'} object-cover border-4 border-white shadow-md">`;
-                     } else {
-                         avatar = `<div class="w-14 h-14 ${isBirthday?'rounded-full':'rounded-lg'} flex items-center justify-center text-white shadow-md text-2xl" style="background-color:${color}"><i class="ph-fill ph-${isBirthday?'cake':icon}"></i></div>`;
-                     }
-
-                     style = `background: white; border: 1px solid #F1F5F9; border-left: 6px solid ${color}; display: flex; align-items: center; padding: 1.25rem;`;
-                     
-                     let extra = ev.type_name || 'Evento';
-                     if(ev.age) extra = `<span class="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full text-xs font-bold border border-indigo-100">🎂 ${ev.age} Años</span>`;
-                     else extra = `<span class="text-xs text-gray-400 font-medium uppercase tracking-wider">${extra}</span>`;
-
-                     return `
-                         <div class="rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 relative overflow-hidden group" style="${style}">
-                             <div class="mr-4 flex-shrink-0">${avatar}</div>
-                             <div class="flex-1 min-w-0">
-                                 <h3 class="text-lg font-bold text-gray-800 leading-tight truncate mb-1" title="${title}">${title}</h3>
-                                 ${extra}
-                             </div>
-                         </div>`;
-                }
-
-                // 2. OTROS ESTILOS (Adaptados a tarjeta grande de Dashboard)
-                if (mode === 'block') { style = `background: white; border-left: 6px solid ${color};`; badgeStyle = `background: #F3F4F6; color: #4B5563;`; }
-                else if (mode === 'subtle') { style = `background: ${hexToRgba(color, 0.05)}; border: 1px solid ${hexToRgba(color, 0.2)};`; titleColor = color; badgeStyle = `background: white; color: ${color}; border: 1px solid ${hexToRgba(color,0.2)}`; }
-                else if (mode === 'gradient') { style = `background: linear-gradient(135deg, ${color}, #ffffff 250%); border: 1px solid ${color};`; titleColor = 'white'; badgeStyle = `background: rgba(255,255,255,0.25); color: white;`; }
-                else if (mode === 'important' || mode === 'banner') { style = `background: ${color}; color: white;`; titleColor = 'white'; badgeStyle = `background: rgba(0,0,0,0.2); color: white;`; }
-                else if (mode === 'background') { style = `background: ${hexToRgba(color, 0.15)}; border: 2px solid ${color};`; titleColor = color; badgeStyle=`background:white; color:${color}`; }
-                else { style = `background: white; border-top: 4px solid ${color};`; badgeStyle = `background: #F3F4F6; color: #4B5563;`; } // Default fallback
-
-                // Hora
-                let timeHTML = '';
-                if (!ev.allDay && ev.start.includes('T')) {
-                    const time = ev.start.split('T')[1].substring(0,5);
-                    timeHTML = `<div class="flex items-center text-xs font-bold mb-3 opacity-80" style="color:${titleColor}"><i class="ph-bold ph-clock mr-1.5"></i> ${time}</div>`;
-                } else {
-                    timeHTML = `<div class="flex items-center text-xs font-bold mb-3 opacity-80" style="color:${titleColor}"><i class="ph-bold ph-calendar-check mr-1.5"></i> Todo el día</div>`;
-                }
-                
-                // Imagen portada opcional
-                let heroImg = '';
-                if (ev.image_url) heroImg = `<div class="h-32 w-full rounded-lg mb-3 overflow-hidden bg-gray-100"><img src="${ev.image_url}" class="w-full h-full object-cover"></div>`;
-
-                return `
-                <div class="rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 relative overflow-hidden group p-5 flex flex-col h-full" style="${style}">
-                    ${(mode === 'background') ? `<i class="ph ph-${icon} absolute -right-6 -bottom-6 text-9xl opacity-10 transform -rotate-12 pointer-events-none" style="color:${color}"></i>` : ''}
-                    
-                    <div class="mb-2">
-                         <span class="badge-responsive inline-flex items-center justify-between px-3 py-2 rounded-md text-[10px] font-bold uppercase tracking-wide" style="${badgeStyle}">
-                            <span class="flex items-center"><i class="ph-bold ph-${icon} mr-1.5"></i> ${ev.type_name || 'Evento'}</span>
-                        </span>
-                    </div>
-
-                    ${heroImg}
-
-                    <h3 class="text-xl font-bold leading-tight mb-2 line-clamp-2" style="color:${titleColor}" title="${title}">${title}</h3>
-                    
-                    ${timeHTML}
-                    
-                    ${ev.description ? `<p class="text-sm opacity-70 line-clamp-2 mt-auto" style="color:${titleColor}">${ev.description}</p>` : ''}
-                </div>`;
+                // ...existing code...
             }).join('');
         }
 

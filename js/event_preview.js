@@ -76,8 +76,8 @@
                 const cardHTML = window.getCardHTML ? window.getCardHTML(cm, c, ic, nm) : '';
                 html = `${cardHTML}`;
             } else if (calMode === 'badge') {
-                // Badge: solo el badge, sin wrappers
-                html = `<div class="w-fit max-w-full py-0.5 px-2 rounded-full text-[7px] font-bold text-white flex items-center gap-1 shadow-sm" style="background-color:${c}"><i class="ph-fill ph-${ic}"></i> ${nm}</div>`;
+                // Badge: mismo tamaño visual que banner
+                html = `<div class="h-4 w-full flex items-center justify-between px-1 shadow-sm z-10" style="background-color:${c}"><span class="text-[6px] font-bold text-white uppercase tracking-wider flex items-center gap-1"><i class="ph-fill ph-${ic}"></i> ${nm}</span></div>`;
             } else if (calMode === 'background') {
                 // Fondo completo: solo el fondo y el icono/label, sin wrappers
                 html = `<div class="absolute inset-0 flex items-center justify-center opacity-20 pointer-events-none"><i class="ph ph-${ic} text-4xl transform -rotate-12" style="color:${c}"></i></div><div class="absolute bottom-1 right-1 text-[6px] font-bold uppercase opacity-80 pointer-events-none" style="color: ${c}">${nm}</div>`;
