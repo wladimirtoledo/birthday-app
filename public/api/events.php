@@ -215,7 +215,7 @@ if ($action === 'save' && $method === 'POST') {
         if ($_FILES['image']['size'] > $maxImageBytes) sendError('Imagen demasiado grande (máx 5MB).');
         $finfo = finfo_open(FILEINFO_MIME_TYPE);
         $mime = finfo_file($finfo, $_FILES['image']['tmp_name']);
-        if (is_object($finfo) && method_exists($finfo, 'close')) { $finfo->close(); }
+        // Eliminado: $finfo->close() no existe en FileInfo
         if (!in_array($mime, $allowedImageTypes)) sendError('Tipo de imagen no permitido.');
         $img = file_get_contents($_FILES['image']['tmp_name']);
     } elseif (!empty($_POST['image_url_input'])) {
@@ -245,7 +245,7 @@ if ($action === 'save' && $method === 'POST') {
 
             $finfo = finfo_open(FILEINFO_MIME_TYPE);
             $detType = finfo_buffer($finfo, $c);
-            if (is_object($finfo) && method_exists($finfo, 'close')) { $finfo->close(); }
+            // Eliminado: $finfo->close() no existe en FileInfo
             if (!in_array($detType, $allowedImageTypes)) sendError('Tipo de imagen remoto no permitido.');
 
             $img = $c;
