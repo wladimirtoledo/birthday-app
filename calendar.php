@@ -41,9 +41,10 @@ $isAdmin = isset($_SESSION['user_role']) && in_array($_SESSION['user_role'], ['a
 
         /* Eventos */
         .fc-daygrid-day-events { margin: 0 !important; padding-bottom: 2px; z-index: 20; display: block; }
-        .fc-event { background: transparent !important; border: none !important; box-shadow: none !important; margin: 4px 0 !important; cursor: pointer; border-radius: 0 !important; overflow: visible !important; }
+        .fc-event { background: transparent !important; border: none !important; box-shadow: none !important; cursor: pointer; border-radius: 0 !important; overflow: visible !important; }
         .fc-event-main { width: 100%; overflow: visible; }
         .fc-daygrid-event-dot, .fc-event-time { display: none !important; }
+            .fc-daygrid-dot-event { padding: 1px 0px; }
         .fc-bg-event { opacity: 1 !important; z-index: 1 !important; background: transparent !important; }
 
         /* Banner-specific: cuando un evento es 'banner' queremos que ocupe el tope del día */
@@ -114,11 +115,9 @@ $isAdmin = isset($_SESSION['user_role']) && in_array($_SESSION['user_role'], ['a
 
         /* Área de eventos: scroll dentro del espacio restante de la celda */
         #calendar .fc-daygrid-day-events {
-            margin-top: 6px !important;
-            padding: 6px 8px !important;
+            padding: 1px 1px !important;
             display: flex !important;
             flex-direction: column !important;
-            gap: 6px !important;
             flex: 1 1 auto;
             overflow: auto;
         }
@@ -310,23 +309,25 @@ $isAdmin = isset($_SESSION['user_role']) && in_array($_SESSION['user_role'], ['a
                     try {
                         const response = await fetch(`public/api/events.php?action=get_all&context=calendar&start_date=${info.startStr}&end_date=${info.endStr}`);
                         const data = await response.json();
+                        console.log('EVENTOS RECIBIDOS:', data);
                         const events = (Array.isArray(data)?data:(data.data||[])).map(ev => {
-                                    // Respetar display_mode del tipo (fallback a 'block')
-                                    const mode = ev.display_mode || ev.type || 'block';
-                                    const display = (mode === 'background') ? 'background' : 'auto';
-                                    return { 
-                                        id: ev.id,
-                                        title: ev.title,
-                                        start: ev.start || ev.event_date,
-                                        allDay: !!ev.allDay,
-                                        display: display,
-                                        backgroundColor: ev.color,
-                                        borderColor: ev.color,
-                                        extendedProps: Object.assign({ mode: mode, icon: ev.icon||'circle', type_name: ev.type_name, type_color: ev.type_color||ev.color, age: ev.age, image_url: ev.image_url }, ev)
-                                    };
+                            // Respetar display_mode del tipo (fallback a 'block')
+                            const mode = ev.display_mode || ev.type || 'block';
+                            const display = (mode === 'background') ? 'background' : 'auto';
+                            return { 
+                                id: ev.id,
+                                title: ev.title,
+                                start: ev.start || ev.event_date,
+                                allDay: !!ev.allDay,
+                                display: display,
+                                backgroundColor: ev.color,
+                                borderColor: ev.color,
+                                extendedProps: Object.assign({ mode: mode, icon: ev.icon||'circle', type_name: ev.type_name, type_color: ev.type_color||ev.color, age: ev.age, image_url: ev.image_url }, ev)
+                            };
                         });
+                        console.log('EVENTOS PROCESADOS:', events);
                         successCallback(events);
-                    } catch (error) { failureCallback(); }
+                    } catch (error) { console.error('ERROR AL CARGAR EVENTOS:', error); failureCallback(); }
                 },
 
                 // 2. RENDERIZADO VISUAL
@@ -346,27 +347,14 @@ $isAdmin = isset($_SESSION['user_role']) && in_array($_SESSION['user_role'], ['a
                         age: props.age,
                         isCalendar: true
                     });
-
-                    // Prefer the shared calendar-cell renderer if available
-                    try {
-                        if (typeof window.getCalendarCellHTML === 'function') {
-                            // Determine calMode vs cardMode
-                            const calMode = (ev.display_mode && ['badge','banner','background'].includes(ev.display_mode)) ? ev.display_mode : 'default';
-                            const cardMode = ev.card_view || ev.card_mode || ev.cardStyle || (ev.display_mode && !['badge','banner','background'].includes(ev.display_mode) ? ev.display_mode : 'block');
-                            const name = ev.type_name || ev.title || '';
-                            const color = ev.color || ev.type_color || arg.event.backgroundColor || '#6B7280';
-                            const icon = ev.icon || 'circle';
-                            const html = window.getCalendarCellHTML(calMode, cardMode, color, icon, name, ev) || '';
-                            // For banner, return only the banner HTML (no wrapper)
-                            if (calMode === 'banner') return { html };
-                            return { html };
-                        }
-                    } catch(e) { /* fall back to existing renderer */ }
-
-                    // Fallback to legacy renderer if shared function not available
-                    if (typeof window.renderEventCard === 'function') {
-                        const html = window.renderEventCard(ev) || '';
-                        if (ev.display_mode === 'banner') return { html: `<div class="banner-wrapper">${html}</div>` };
+                    // Usar siempre el renderizador unificado
+                    if (typeof window.getCalendarCellHTML === 'function') {
+                        const calMode = (ev.display_mode && ['badge','banner','background'].includes(ev.display_mode)) ? ev.display_mode : 'default';
+                        const cardMode = ev.card_view || ev.card_mode || ev.cardStyle || (ev.display_mode && !['badge','banner','background'].includes(ev.display_mode) ? ev.display_mode : 'block');
+                        const name = ev.type_name || ev.title || '';
+                        const color = ev.color || ev.type_color || arg.event.backgroundColor || '#6B7280';
+                        const icon = ev.icon || 'circle';
+                        const html = window.getCalendarCellHTML(calMode, cardMode, color, icon, name, ev) || '';
                         return { html };
                     }
                     return { html: '' };

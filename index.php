@@ -36,7 +36,7 @@ $dateText = "$diaSemana, $diaNum de $mesNom de $anio";
         .animate-enter { animation: enter 0.5s ease-out forwards; opacity: 0; transform: translateY(20px); }
         @keyframes enter { to { opacity: 1; transform: translateY(0); } }
         
-        .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-clamp: 2; }
     </style>
 </head>
 <body class="bg-gray-100 font-sans h-screen flex flex-col overflow-hidden text-slate-800">

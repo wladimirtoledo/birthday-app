@@ -47,7 +47,25 @@
     // getCalendarCellHTML: reproduce exact HTML used in event_types.php 'Resultado en Calendario'
     if (typeof window.getCalendarCellHTML !== 'function') {
         window.getCalendarCellHTML = function(calMode, cardMode, color, icon, name, ev) {
-            const nm = name || (ev && (ev.type_name || ev.title)) || 'Tipo';
+            let nm;
+            let html;
+            // Unificar tarjeta de cumpleaños en todos los modos visuales
+            if (ev && ev.type === 'birthday') {
+                const c = color || '#4F46E5';
+                let nombre = ev.title || '';
+                let edad = (ev.age && !isNaN(ev.age)) ? ` (${ev.age})` : '';
+                let foto = ev.image_url ? `<img src='${ev.image_url}' alt='avatar' style='width:22px;height:22px;border-radius:50%;object-fit:cover;display:inline-block;margin-right:6px;vertical-align:middle;'>` : '';
+                nm = `${foto}<span style='font-weight:700;color:#1e293b;'>${nombre}${edad}</span>`;
+                // Tarjeta compacta y visualmente consistente
+                html = `<div class=\"w-full p-1.5 rounded text-[7px] truncate flex items-center gap-2 transition-transform transform hover:scale-[1.02] cursor-pointer shadow-sm mb-1\" style=\"background:#fff; border-left:3px solid ${c}; box-shadow:0 1px 2px rgba(0,0,0,0.05);\">${nm}</div>`;
+                return html;
+            } else {
+                if (calMode === 'badge' && ev && ev.title) {
+                    nm = ev.title;
+                } else {
+                    nm = name || (ev && (ev.type_name || ev.title)) || 'Tipo';
+                }
+            }
             const cm = cardMode || 'block';
             const c = color || '#4F46E5';
             const ic = icon || 'circle';
@@ -57,7 +75,7 @@
                 try { let r=parseInt(col.slice(1,3),16), g=parseInt(col.slice(3,5),16), b=parseInt(col.slice(5,7),16); return `rgba(${r},${g},${b},${a})`; } catch(e){ return `rgba(79,70,229,${a})`; }
             };
 
-            let html = '';
+            html = '';
             // compute day label/number from ev when available
             let dayLabel = 'MIÉ';
             let dayNumber = '24';
@@ -77,7 +95,7 @@
                 html = `${cardHTML}`;
             } else if (calMode === 'badge') {
                 // Badge: mismo tamaño visual que banner
-                html = `<div class="h-4 w-full flex items-center justify-between px-1 shadow-sm z-10" style="background-color:${c}"><span class="text-[6px] font-bold text-white uppercase tracking-wider flex items-center gap-1"><i class="ph-fill ph-${ic}"></i> ${nm}</span></div>`;
+                html = `<div class="h-4 w-full flex items-center justify-between px-1 shadow-sm z-10" style="background-color:${c}"><span class="text-[6px] font-bold text-white uppercase tracking-wider flex items-center gap-1"><i class="ph-fill ph-${ic}" style="vertical-align:middle; font-size:8px;"></i> ${nm}</span></div>`;
             } else if (calMode === 'background') {
                 // Fondo completo: solo el fondo y el icono/label, sin wrappers
                 html = `<div class="absolute inset-0 flex items-center justify-center opacity-20 pointer-events-none"><i class="ph ph-${ic} text-4xl transform -rotate-12" style="color:${c}"></i></div><div class="absolute bottom-1 right-1 text-[6px] font-bold uppercase opacity-80 pointer-events-none" style="color: ${c}">${nm}</div>`;
