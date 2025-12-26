@@ -21,9 +21,38 @@
             else if (cardMode === 'gradient') { innerStyle=`background:linear-gradient(135deg,${color},#ffffff 180%); color:white; border:1px solid ${color};`; innerText = `color:white; text-shadow:0 1px 2px rgba(0,0,0,0.3);`; contentHTML = `<i class="ph ph-${icon}" style="color:white"></i> <span style="color:white; text-shadow:0 1px 2px rgba(0,0,0,0.3);">${name}</span>`; }
             else if (cardMode === 'important') { innerStyle=`background:${color}; color:white; font-weight:bold; box-shadow:0 2px 4px rgba(0,0,0,0.15); border: 1px solid rgba(0,0,0,0.1); border-left: 3px solid rgba(0,0,0,0.3);`; contentHTML = `<i class="ph-fill ph-${icon}" style="color:white"></i> <span style="color:white">${name}</span>`; }
             else if (cardMode === 'transparent') { innerStyle=`background:transparent; border:1px dashed ${color}; color:${color}; font-weight:500;`; innerText = `color:${color}`; contentHTML = `<i class="ph ph-${icon}" style="color:${color}"></i> <span style="color:${color}">${name}</span>`; }
+
             else if (cardMode === 'photo') {
                 innerStyle = `background: #f8fafc; border-left: 2px solid ${color}; padding: 0 4px; display: flex; align-items: center; overflow: hidden; box-shadow: none; min-height: 28px;`;
-                if (ev && ev.image_url) {
+                if (ev && ev.type_slug === 'birthday' && ev.image_url) {
+                    // Calcular edad
+                    let edad = '';
+                    if (ev.birthdate && ev.start) {
+                        const birthYear = String(ev.birthdate).slice(0,4);
+                        const eventYear = String(ev.start).slice(0,4);
+                        if (birthYear && eventYear) {
+                            edad = (parseInt(eventYear)-parseInt(birthYear)).toString();
+                        }
+                    }
+                    // Solo primer nombre y primer apellido
+                    let firstName = '';
+                    let lastName = '';
+                    if (ev.title) {
+                        const parts = ev.title.trim().split(' ');
+                        firstName = parts[0] || '';
+                        lastName = parts.length > 1 ? parts[1] : '';
+                    }
+                    // Mostrar edad debajo del nombre si el año no es 1000
+                    let edadHtml = '';
+                    if (ev.birthdate && ev.start) {
+                        const birthYear = String(ev.birthdate).slice(0,4);
+                        if (birthYear !== '1000' && edad) {
+                            edadHtml = `<div style='color:#6366f1;font-weight:bold;font-size:10px;line-height:1;'>${edad} años</div>`;
+                        }
+                    }
+                    contentHTML = `<img src="${ev.image_url}" alt="foto" style="width: 18px; height: 18px; border-radius: 6px; object-fit: cover; margin-right: 6px; flex-shrink: 0;">` +
+                        `<span style="padding: 0 2px; font-size: 11px; color: #374151; font-weight: 500; display:block;">${firstName} ${lastName}</span>` + edadHtml;
+                } else if (ev && ev.image_url) {
                     contentHTML = `<img src="${ev.image_url}" alt="foto" style="width: 18px; height: 18px; border-radius: 6px; object-fit: cover; margin-right: 6px; flex-shrink: 0;">` +
                         `<span style="padding: 0 2px; font-size: 11px; color: #374151; font-weight: 500;">${name}</span>`;
                 } else {
@@ -32,17 +61,53 @@
             }
 
             else if (cardMode === 'detailed') {
-                innerStyle = `background: white; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.08); border: 1px solid #f1f5f9; border-left: 4px solid ${color}; padding: 4px; display: flex; align-items: center; gap: 8px; margin: 2px 0; min-height: 40px;`;
-                const bgIcon = hexToRgba(color, 0.15);
-                contentHTML = `
-                    <div style="width: 32px; height: 32px; border-radius: 50%; background-color: ${bgIcon}; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: ${color}; box-shadow: inset 0 0 0 1px ${color}20;">
-                        <i class="ph-fill ph-${icon} text-lg"></i>
-                    </div>
-                    <div style="display: flex; flex-direction: column; overflow: hidden; justify-content: center;">
-                        <span style="font-weight: 800; font-size: 0.8rem; color: #1e293b; line-height: 1.1;">${name}</span>
-                        <span style="font-size: 0.65rem; color: #64748b; margin-top: 1px;">Detalles...</span>
-                    </div>
-                `;
+                innerStyle = `background: white; border-radius: 5px; box-shadow: 0 1px 2px rgba(0,0,0,0.06); border: 1px solid #f1f5f9; border-left: 3px solid ${color}; padding: 2px 4px; display: flex; align-items: center; gap: 4px; margin: 1px 0; min-height: 26px;`;
+                const bgIcon = hexToRgba(color, 0.13);
+                if (ev && ev.type_slug === 'birthday' && ev.image_url) {
+                    // Calcular edad
+                    let edad = '';
+                    if (ev.birthdate && ev.start) {
+                        const birthYear = String(ev.birthdate).slice(0,4);
+                        const eventYear = String(ev.start).slice(0,4);
+                        if (birthYear && eventYear) {
+                            edad = (parseInt(eventYear)-parseInt(birthYear)).toString();
+                        }
+                    }
+                    // Solo primer nombre y primer apellido
+                    let firstName = '';
+                    let lastName = '';
+                    if (ev.title) {
+                        const parts = ev.title.trim().split(' ');
+                        firstName = parts[0] || '';
+                        lastName = parts.length > 1 ? parts[1] : '';
+                    }
+                    // Mostrar edad debajo del nombre si el año no es 1000
+                    let edadHtml = '';
+                    if (ev.birthdate && ev.start) {
+                        const birthYear = String(ev.birthdate).slice(0,4);
+                        if (birthYear !== '1000' && edad) {
+                            edadHtml = `<div style='color:#6366f1;font-weight:bold;font-size:10px;line-height:1;'>${edad} años</div>`;
+                        }
+                    }
+                    contentHTML = `
+                        <img src="${ev.image_url}" alt="foto" style="width: 22px; height: 22px; border-radius: 50%; object-fit: cover; margin-right: 6px; flex-shrink: 0; border:2px solid ${color};">
+                        <div style="display: flex; flex-direction: column; overflow: hidden; justify-content: center;">
+                            <span style="font-weight: 700; font-size: 10px; color: #1e293b; line-height: 1.1;">${firstName} ${lastName}</span>
+                            ${edadHtml}
+                            <span style="font-size: 8px; color: #64748b; margin-top: 0;">Cumpleaños</span>
+                        </div>
+                    `;
+                } else {
+                    contentHTML = `
+                        <div style="width: 18px; height: 18px; border-radius: 50%; background-color: ${bgIcon}; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: ${color}; box-shadow: inset 0 0 0 1px ${color}20;">
+                            <i class="ph-fill ph-${icon}" style="font-size:12px;"></i>
+                        </div>
+                        <div style="display: flex; flex-direction: column; overflow: hidden; justify-content: center;">
+                            <span style="font-weight: 700; font-size: 10px; color: #1e293b; line-height: 1.1;">${name}</span>
+                            <span style="font-size: 8px; color: #64748b; margin-top: 0;">Detalles...</span>
+                        </div>
+                    `;
+                }
             }
 
             return `
