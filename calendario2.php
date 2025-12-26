@@ -17,6 +17,17 @@ requireAuth();
         .fancy-scroll::-webkit-scrollbar-track { background: transparent; }
         .fancy-scroll::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 20px; border: 2px solid transparent; background-clip: content-box; }
         .fancy-scroll::-webkit-scrollbar-thumb:hover { background-color: #94a3b8; }
+            /* Encapsulado de tarjetas de evento para evitar contaminación de estilos */
+            .event-card-preview {
+                border-radius: 0.5rem;
+                box-shadow: 0 1px 4px 0 rgba(0,0,0,0.04);
+                background: #fff;
+                margin-bottom: 2px;
+                padding: 2px 4px;
+                min-width: 0;
+                position: relative;
+                z-index: 1;
+            }
     </style>
 </head>
 <body class="bg-gray-100 font-sans min-h-screen flex flex-col">
@@ -54,77 +65,72 @@ requireAuth();
 
     // Clon literal de renderUnifiedPreview de event_types.php para cada celda
     function renderCellPreview(day, dayEvents) {
-        // --- LÓGICA UNIFICADA LIMPIA ---
-        // Determinar modo especial para clases
+        // --- Agrupación y estructura preview ---
         const special = dayEvents.find(e => e.display_mode === 'background' || e.display_mode === 'badge' || e.display_mode === 'banner' || e.type_slug === 'holiday');
-        let contClass = 'bg-white relative flex flex-col overflow-hidden z-10 shadow-2xl ring-4 ring-indigo-50/50 transition-all duration-300 min-h-[110px] min-w-[0] aspect-square border border-gray-100';
-        if (special && (special.display_mode === 'background' || special.type_slug === 'holiday')) {
+        const feriado = dayEvents.find(e => e.display_mode === 'background' || e.type_slug === 'holiday');
+        let contClass = 'relative flex flex-col overflow-hidden z-10 transition-all duration-300 min-h-[110px] min-w-[0] aspect-square';
+        let style = '';
+        if (feriado) {
+            const color = feriado.color || '#EF4444';
             contClass += ' ring-2 ring-red-200';
+            style = `background-color: ${window.hexToRgba ? window.hexToRgba(color, 0.15) : color};`;
         } else {
-            contClass += ' hover:ring-2 hover:ring-indigo-100';
+            contClass += ' bg-white shadow-2xl ring-4 ring-indigo-50/50 hover:ring-2 hover:ring-indigo-100';
+            style = '';
         }
 
-        // Fondo especial (feriado/background)
-        const feriado = dayEvents.find(e => e.display_mode === 'background' || e.type_slug === 'holiday');
-        let feriadoBg = '';
-        let feriadoOverlay = '';
-        let feriadoLabel = '';
+        // Agrupar eventos por tipo
+        const banner = dayEvents.find(e => e.display_mode === 'banner');
+        const badge = dayEvents.find(e => e.display_mode === 'badge');
+        const normalEvents = dayEvents.filter(e => !['badge','banner','background'].includes(e.display_mode) && e.type_slug !== 'holiday');
+
+        // --- ZONA ARRIBA: Banner, header, badge ---
+        let headerZone = '';
+        if (banner) {
+            headerZone += `<div class=\"h-4 w-full flex items-center justify-between px-1 shadow-sm z-10\" style=\"background-color:${banner.color||'#4F46E5'}\"><span class=\"text-[6px] font-bold text-white uppercase tracking-wider flex items-center gap-1\"><i class=\"ph-bold ph-${banner.icon||'calendar-blank'}\"></i> ${banner.title||'Tipo'}</span></div>`;
+        }
+        headerZone += `<div class=\"flex justify-between items-start mb-1\" style=\"min-height:22px; background:${feriado ? 'transparent' : '#fff'};\"><span class=\"text-[8px] font-bold ${feriado ? 'opacity-60' : ''} ${feriado ? '' : 'text-gray-400'} uppercase\" style=\"color:${feriado ? (feriado.color || '#EF4444') : ''}\">${day.dow}</span><span class=\"text-sm font-black ${feriado ? '' : 'text-gray-800'}\" style=\"color:${feriado ? (feriado.color || '#EF4444') : ''}\">${day.num}</span></div>`;
+        if (badge) {
+            headerZone = headerZone.replace('mb-1','mb-0');
+            headerZone += `<div class=\"w-fit max-w-full py-0.5 px-2 rounded-full mb-0 text-[7px] font-bold text-white flex items-center gap-1 shadow-sm\" style=\"background-color:${badge.color||'#4F46E5'}; margin-top:0; margin-bottom:0;\"><i class=\"ph-fill ph-${badge.icon||'calendar-blank'}\"></i> ${badge.title||'Tipo'}</div>`;
+        }
+
+        // --- ZONA CENTRO: eventos normales ---
+        let centerZone = '';
+        if (normalEvents.length > 0) {
+            centerZone = `<div class=\"flex flex-col gap-0.5 flex-1 mt-1\">${normalEvents.map(ev => {
+                const mode = ev.display_mode || 'block';
+                const color = ev.color || '#4F46E5';
+                const icon = ev.icon || 'calendar-blank';
+                const name = ev.title || 'Tipo';
+                return `<div class=\"event-card-preview\">${window.getCardHTML ? window.getCardHTML(mode, color, icon, name, {...ev, start: day.iso}) : ''}</div>`;
+            }).join('')}</div>`;
+        } else {
+            centerZone = '<div class=\"flex-1\"></div>';
+        }
+
+        // --- ZONA ABAJO: línea decorativa ---
+        let bottomZone = '<div class="w-3/4 h-1 rounded bg-gradient-to-r from-indigo-100 via-gray-50 to-indigo-100 border border-gray-100 shadow-sm opacity-80 mx-auto mt-1"></div>';
+
+        // --- ENSAMBLAR CELDA ---
+        // Overlay e icono para feriado
+        let overlay = '';
+        let label = '';
         if (feriado) {
             const color = feriado.color || '#EF4444';
             const icon = feriado.icon || 'calendar-blank';
             const name = feriado.title || 'FERIADO';
-            const bgRgba = window.hexToRgba ? window.hexToRgba(color, 0.15) : color;
-            feriadoBg = `background-color: ${bgRgba};`;
-            feriadoOverlay = `<div class=\"absolute inset-0 flex items-center justify-center opacity-20 pointer-events-none z-0\"><i class=\"ph ph-${icon} text-4xl transform -rotate-12\" style=\"color:${color}\"></i></div>`;
-            feriadoLabel = `<div class=\"absolute bottom-1 right-1 text-[6px] font-bold uppercase opacity-80 pointer-events-none z-10\" style=\"color: ${color}\">${name}</div>`;
+            overlay = `<div class=\"absolute inset-0 flex items-center justify-center opacity-20 pointer-events-none\"><i class=\"ph ph-${icon} text-4xl transform -rotate-12\" style=\"color:${color}\"></i></div>`;
+            label = `<div class=\"absolute bottom-1 right-1 text-[6px] font-bold uppercase opacity-80 pointer-events-none\" style=\"color: ${color}\">${name}</div>`;
         }
-
-        // Banner y Badge
-        const banner = dayEvents.find(e => e.display_mode === 'banner');
-        const badge = dayEvents.find(e => e.display_mode === 'badge');
-        // Eventos normales
-        const eventCards = dayEvents.filter(e => e.display_mode !== 'badge' && e.display_mode !== 'banner' && e.display_mode !== 'background' && e.type_slug !== 'holiday');
-        const cardsHtml = eventCards.map(ev => {
-            const mode = ev.display_mode || 'block';
-            const color = ev.color || '#4F46E5';
-            const icon = ev.icon || 'calendar-blank';
-            const name = ev.title || 'Tipo';
-            return window.getCardHTML ? window.getCardHTML(mode, color, icon, name, {...ev, start: day.iso}) : '';
-        }).join('');
-
-        // Estructura idéntica a la preview: banner arriba, luego badge, luego cards
-        if (banner || badge) {
-            let contentHtml = `<div class='w-full h-full flex flex-col bg-white relative z-10'>`;
-            if (banner) {
-                contentHtml += `<div class=\"h-4 w-full flex items-center justify-between px-1 shadow-sm z-10\" style=\"background-color:${banner.color||'#4F46E5'}\"><span class=\"text-[6px] font-bold text-white uppercase tracking-wider flex items-center gap-1\"><i class=\"ph-bold ph-${banner.icon||'calendar-blank'}\"></i> ${banner.title||'Tipo'}</span></div>`;
-            }
-            contentHtml += `<div class=\"p-2 relative flex-1 flex flex-col\">`;
-            // Header (día y número, opaco si hay banner)
-            contentHtml += `<div class=\"flex justify-between items-start${banner ? ' opacity-30 mb-1' : ' mb-1'}\"><span class=\"text-[8px] font-black\">${day.dow}</span><span class=\"text-sm font-black\">${day.num}</span></div>`;
-            if (badge) {
-                contentHtml += `<div class=\"w-fit max-w-full py-0.5 px-2 rounded-full mb-1 text-[7px] font-bold text-white flex items-center gap-1 shadow-sm\" style=\"background-color:${badge.color||'#4F46E5'};\"><i class=\"ph-fill ph-${badge.icon||'calendar-blank'}\"></i> ${badge.title||'Tipo'}</div>`;
-            }
-            contentHtml += `<div class='flex flex-col gap-0.5 flex-shrink-0'>${cardsHtml}</div>`;
-            // Línea decorativa fuera del bloque de eventos, pegada abajo
-            contentHtml += `<div class=\"w-3/4 h-1 bg-gray-100 rounded opacity-50 mt-auto\"></div>`;
-            contentHtml += `</div>`;
-            contentHtml += `${feriadoLabel}`;
-            contentHtml += `</div>`;
-            return `<div class='${contClass} relative' style='${feriadoBg}'>${feriadoOverlay}${contentHtml}</div>`;
-        }
-
-        // Si no hay banner ni badge, render normal o feriado
-        let headerHtml = `<span style=\"font-size:8px;font-weight:700;color:#9ca3af;text-transform:uppercase;line-height:1;\">${day.dow}</span><span style=\"font-size:15px;font-weight:900;color:#1e293b;line-height:1;\">${day.num}</span>`;
-        return `<div class='${contClass} relative' style='${feriadoBg}'>
-            ${feriadoOverlay}
-            <div class='w-full h-full p-2 flex flex-col justify-between bg-white/80 relative z-10'>
-                <div class=\"flex justify-between items-start mb-1\" style=\"margin-bottom:4px;align-items:flex-start;\">${headerHtml}</div>
-                <div class='flex flex-col gap-0.5'>
-                    ${cardsHtml}
-                    <div class=\"w-3/4 h-1 bg-gray-100 rounded opacity-50\"></div>
-                </div>
-                ${feriadoLabel}
+        return `<div class='${contClass}' style='${style}'>
+            <div class='w-full h-full flex flex-col ${feriado ? 'bg-transparent p-2' : 'bg-white p-2'} relative z-10'>
+                ${headerZone}
+                ${centerZone}
+                ${bottomZone}
+                ${label}
             </div>
+            ${overlay}
         </div>`;
     }
 
@@ -137,10 +143,14 @@ requireAuth();
         const days = Array.from({length: 28}, (_,i) => {
             const d = new Date(calendarStart);
             d.setDate(calendarStart.getDate() + i);
+            // Generar YYYY-MM-DD en local
+            const yyyy = d.getFullYear();
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            const dd = String(d.getDate()).padStart(2, '0');
             return {
                 num: d.getDate(),
                 dow: d.toLocaleDateString('es-ES', { weekday: 'short' }).toUpperCase().replace('.',''),
-                iso: d.toISOString().slice(0,10)
+                iso: `${yyyy}-${mm}-${dd}`
             };
         });
         const container = document.getElementById('calendarPreview');
@@ -152,7 +162,7 @@ requireAuth();
             </div>
             <div class='aspect-[7/4] grid grid-cols-7 grid-rows-4 gap-px text-[16px] text-gray-700 mx-auto p-0'>
             ${days.map((d,i)=>{
-                const dayEvents = events.filter(e => e.event_date === d.iso);
+                const dayEvents = events.filter(e => (e.event_date||'').slice(0,10) === d.iso);
                 return renderCellPreview(d, dayEvents);
             }).join('')}
             </div>
