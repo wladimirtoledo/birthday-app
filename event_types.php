@@ -144,14 +144,15 @@ if (!hasRole(['admin', 'moderator'])) { header("Location: index.php"); exit; }
                             2. Estilo de Tarjeta (Contenido del Evento)
                         </label>
                         <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-3">
+                            <!-- Orden lógico: Estándar, Compacto, Suave, Aero, Sólido, Detallada, Foto, Minimal, Contorno, Badge, Banner -->
                             <label class="cursor-pointer group text-center" title="Estilo básico con borde izquierdo de color."><input type="radio" name="card_view" value="block" checked class="card-radio hidden" onchange="updatePreview()"><div class="border border-gray-200 rounded-xl p-3 hover:border-indigo-300 transition h-full flex flex-col items-center justify-center bg-white"><div class="w-8 h-5 bg-white border-l-4 border-gray-400 shadow-sm mb-2"></div><span class="text-[10px] font-bold text-gray-600">Estándar</span></div></label>
+                            <label class="cursor-pointer group text-center" title="Versión compacta del estándar."><input type="radio" name="card_view" value="compact" class="card-radio hidden" onchange="updatePreview()"><div class="border border-gray-200 rounded-xl p-3 hover:border-indigo-300 transition h-full flex flex-col items-center justify-center bg-white"><div class="w-8 h-3 bg-white border-l-2 border-gray-400 shadow-sm mb-2"></div><span class="text-[10px] font-bold text-gray-600">Compacto</span></div></label>
                             <label class="cursor-pointer group text-center" title="Fondo sutil con borde de color."><input type="radio" name="card_view" value="subtle" class="card-radio hidden" onchange="updatePreview()"><div class="border border-gray-200 rounded-xl p-3 hover:border-indigo-300 transition h-full flex flex-col items-center justify-center bg-white"><div class="w-8 h-5 bg-indigo-50 border border-indigo-100 shadow-sm mb-2"></div><span class="text-[10px] font-bold text-gray-600">Suave</span></div></label>
                             <label class="cursor-pointer group text-center" title="Degradado de color a blanco."><input type="radio" name="card_view" value="gradient" class="card-radio hidden" onchange="updatePreview()"><div class="border border-gray-200 rounded-xl p-3 hover:border-indigo-300 transition h-full flex flex-col items-center justify-center bg-white"><div class="w-8 h-5 bg-gradient-to-br from-white to-indigo-200 shadow-sm mb-2 border border-indigo-100"></div><span class="text-[10px] font-bold text-gray-600">Aero</span></div></label>
                             <label class="cursor-pointer group text-center" title="Fondo sólido de color con texto blanco."><input type="radio" name="card_view" value="important" class="card-radio hidden" onchange="updatePreview()"><div class="border border-gray-200 rounded-xl p-3 hover:border-indigo-300 transition h-full flex flex-col items-center justify-center bg-white"><div class="w-8 h-5 bg-gray-800 shadow-sm mb-2"></div><span class="text-[10px] font-bold text-gray-600">Sólido</span></div></label>
                             <label class="cursor-pointer group text-center" title="Tarjeta grande con avatar e icono."><input type="radio" name="card_view" value="detailed" class="card-radio hidden" onchange="updatePreview()"><div class="border border-gray-200 rounded-xl p-3 hover:border-indigo-300 transition h-full flex flex-col items-center justify-center bg-white"><div class="w-8 h-5 bg-gray-50 flex items-center justify-center border border-gray-200 mb-2"><i class="ph-fill ph-list text-[8px] text-gray-400"></i></div><span class="text-[10px] font-bold text-gray-600">Detallada</span></div></label>
                             <label class="cursor-pointer group text-center" title="Tarjeta con imagen de fondo."><input type="radio" name="card_view" value="photo" class="card-radio hidden" onchange="updatePreview()"><div class="border border-gray-200 rounded-xl p-3 hover:border-indigo-300 transition h-full flex flex-col items-center justify-center bg-white"><div class="w-8 h-5 bg-gray-50 flex items-center justify-center border border-gray-200 mb-2"><i class="ph-fill ph-image text-[8px] text-gray-400"></i></div><span class="text-[10px] font-bold text-gray-600">Foto</span></div></label>
                             <label class="cursor-pointer group text-center" title="Estilo minimalista con borde punteado."><input type="radio" name="card_view" value="transparent" class="card-radio hidden" onchange="updatePreview()"><div class="border border-gray-200 rounded-xl p-3 hover:border-indigo-300 transition h-full flex flex-col items-center justify-center bg-white"><div class="w-8 h-5 border border-dashed border-gray-400 mb-2"></div><span class="text-[10px] font-bold text-gray-600">Minimal</span></div></label>
-                            <label class="cursor-pointer group text-center" title="Versión compacta del estándar."><input type="radio" name="card_view" value="compact" class="card-radio hidden" onchange="updatePreview()"><div class="border border-gray-200 rounded-xl p-3 hover:border-indigo-300 transition h-full flex flex-col items-center justify-center bg-white"><div class="w-8 h-3 bg-white border-l-2 border-gray-400 shadow-sm mb-2"></div><span class="text-[10px] font-bold text-gray-600">Compacto</span></div></label>
                             <label class="cursor-pointer group text-center" title="Borde punteado de color."><input type="radio" name="card_view" value="outline" class="card-radio hidden" onchange="updatePreview()"><div class="border border-gray-200 rounded-xl p-3 hover:border-indigo-300 transition h-full flex flex-col items-center justify-center bg-white"><div class="w-8 h-5 border-2 border-dashed border-indigo-400 mb-2"></div><span class="text-[10px] font-bold text-gray-600">Contorno</span></div></label>
                             <!-- Badge como tarjeta -->
                             <label class="cursor-pointer group text-center" title="Tarjeta tipo etiqueta/badge."><input type="radio" name="card_view" value="badge" class="card-radio hidden" onchange="updatePreview()"><div class="border border-gray-200 rounded-xl p-3 hover:border-indigo-300 transition h-full flex flex-col items-center justify-center bg-white"><div class="w-8 h-5 flex items-center justify-center mb-2"><div class="h-1.5 w-6 bg-indigo-500 rounded-sm"></div></div><span class="text-[10px] font-bold text-gray-600">Etiqueta (Badge)</span></div></label>
@@ -173,7 +174,6 @@ if (!hasRole(['admin', 'moderator'])) { header("Location: index.php"); exit; }
 
                     <div class="flex justify-end gap-3 pt-4 border-t border-gray-100">
                         <button type="button" onclick="closeModal()" class="px-5 py-2.5 bg-white border border-gray-300 rounded-xl text-gray-700 font-bold hover:bg-gray-50 text-sm">Cancelar</button>
-                        <button type="button" id="deleteBtn" onclick="deleteType(document.getElementById('typeId').value)" class="hidden px-5 py-2.5 bg-red-500 text-white rounded-xl font-bold hover:bg-red-600 text-sm">Eliminar</button>
                         <button type="submit" class="px-5 py-2.5 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 shadow-md text-sm">Guardar</button>
                     </div>
                 </form>
@@ -478,7 +478,6 @@ if (!hasRole(['admin', 'moderator'])) { header("Location: index.php"); exit; }
                     <td class="px-6 py-4"><div class="w-4 h-4 rounded-full border border-gray-200" style="background-color:${t.color}"></div></td>
                     <td class="px-6 py-4 text-right">
                         <button onclick='editType(${JSON.stringify(t)})' class="text-indigo-600 hover:bg-indigo-50 p-2 rounded-lg transition mr-1" title="Editar"><i class="ph ph-pencil-simple text-lg"></i></button>
-                        <button onclick="deleteType(${t.id})" class="text-red-500 hover:bg-red-50 p-2 rounded-lg transition" title="Eliminar"><i class="ph ph-trash text-lg"></i></button>
                     </td>
                 </tr>`;
             }).join('');
@@ -490,25 +489,21 @@ if (!hasRole(['admin', 'moderator'])) { header("Location: index.php"); exit; }
             document.getElementById('typeName').value = t.name;
             document.getElementById('typeColor').value = t.color;
             initIcons();
-            if (['background','banner','badge'].includes(t.display_mode)) {
-                document.querySelector(`input[name="cal_view"][value="${t.display_mode}"]`).checked = true;
-                document.querySelector(`input[name="card_view"][value="block"]`).checked = true;
+            // Lógica corregida para badge/banner/background
+            if (t.display_mode === 'background') {
+                document.querySelector('input[name="cal_view"][value="background"]').checked = true;
+                document.querySelector('input[name="card_view"][value="block"]').checked = true;
+            } else if (t.display_mode === 'badge' || t.display_mode === 'banner') {
+                document.querySelector('input[name="cal_view"][value="default"]').checked = true;
+                document.querySelector(`input[name="card_view"][value="${t.display_mode}"]`).checked = true;
             } else {
-                document.querySelector(`input[name="cal_view"][value="default"]`).checked = true;
-                
-                // Mapeo seguro si es detailed
+                document.querySelector('input[name="cal_view"][value="default"]').checked = true;
+                // Mapeo seguro si es detailed u otro
                 const cr = document.querySelector(`input[name="card_view"][value="${t.display_mode}"]`);
                 if(cr) cr.checked = true;
-                else document.querySelector(`input[name="card_view"][value="block"]`).checked = true;
+                else document.querySelector('input[name="card_view"][value="block"]').checked = true;
             }
             setTimeout(() => { const i=document.querySelector(`input[name="icon"][value="${t.icon}"]`); if(i)i.checked=true; updatePreview(); }, 50);
-            // Mostrar botón eliminar si es edición
-            const deleteBtn = document.getElementById('deleteBtn');
-            if (t.id) {
-                deleteBtn.classList.remove('hidden');
-            } else {
-                deleteBtn.classList.add('hidden');
-            }
             document.getElementById('typeModal').classList.remove('hidden');
         }
 
