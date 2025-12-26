@@ -311,10 +311,11 @@ $isAdmin = isset($_SESSION['user_role']) && in_array($_SESSION['user_role'], ['a
                         const data = await response.json();
                         console.log('EVENTOS RECIBIDOS:', data);
                         const events = (Array.isArray(data)?data:(data.data||[])).map(ev => {
-                            // Respetar display_mode del tipo (fallback a 'block')
-                            const mode = ev.display_mode || ev.type || 'block';
+                            // Si es feriado, forzar modo background y diseño holiday
+                            let mode = ev.display_mode || ev.type || 'block';
+                            if (ev.type_slug === 'holiday' || ev.slug === 'holiday') mode = 'background';
                             const display = (mode === 'background') ? 'background' : 'auto';
-                            return { 
+                            return {
                                 id: ev.id,
                                 title: ev.title,
                                 start: ev.start || ev.event_date,
@@ -322,7 +323,7 @@ $isAdmin = isset($_SESSION['user_role']) && in_array($_SESSION['user_role'], ['a
                                 display: display,
                                 backgroundColor: ev.color,
                                 borderColor: ev.color,
-                                extendedProps: Object.assign({ mode: mode, icon: ev.icon||'circle', type_name: ev.type_name, type_color: ev.type_color||ev.color, age: ev.age, image_url: ev.image_url }, ev)
+                                extendedProps: Object.assign({ mode: mode, icon: ev.icon||'circle', type_name: ev.type_name, type_color: ev.type_color||ev.color, age: ev.age, image_url: ev.image_url, slug: ev.slug, type_slug: ev.type_slug }, ev)
                             };
                         });
                         console.log('EVENTOS PROCESADOS:', events);

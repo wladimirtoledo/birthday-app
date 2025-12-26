@@ -296,7 +296,7 @@ if (!hasRole(['admin', 'moderator'])) { header("Location: index.php"); exit; }
         // --- GENERADOR DE HTML DE TARJETA (REUTILIZABLE)
         // Use shared implementation if available; otherwise define locally
         if (typeof window.getCardHTML !== 'function') {
-            window.getCardHTML = function(cardMode, color, icon, name) {
+            window.getCardHTML = function(cardMode, color, icon, name, ev) {
                 let innerStyle = '', innerText = 'text-gray-700', innerIconColor = color;
                 let contentHTML = `<i class="ph ph-${icon}" style="color:${innerIconColor}"></i> <span style="${innerText}">${name}</span>`;
 
@@ -305,7 +305,15 @@ if (!hasRole(['admin', 'moderator'])) { header("Location: index.php"); exit; }
                 else if (cardMode === 'gradient') { innerStyle=`background:linear-gradient(135deg,${color},#ffffff 180%); color:white; border:1px solid ${color};`; innerText = `color:white; text-shadow:0 1px 2px rgba(0,0,0,0.3);`; contentHTML = `<i class="ph ph-${icon}" style="color:white"></i> <span style="color:white; text-shadow:0 1px 2px rgba(0,0,0,0.3);">${name}</span>`; }
                 else if (cardMode === 'important') { innerStyle=`background:${color}; color:white; font-weight:bold; box-shadow:0 2px 4px rgba(0,0,0,0.15); border: 1px solid rgba(0,0,0,0.1); border-left: 3px solid rgba(0,0,0,0.3);`; contentHTML = `<i class="ph-fill ph-${icon}" style="color:white"></i> <span style="color:white">${name}</span>`; }
                 else if (cardMode === 'transparent') { innerStyle=`background:transparent; border:1px dashed ${color}; color:${color}; font-weight:500;`; innerText = `color:${color}`; contentHTML = `<i class="ph ph-${icon}" style="color:${color}"></i> <span style="color:${color}">${name}</span>`; }
-                else if (cardMode === 'photo') { innerStyle = `background: white; border-left: 3px solid ${color}; padding: 0; display: flex; align-items: center; overflow: hidden; box-shadow: 0 1px 2px rgba(0,0,0,0.1);`; contentHTML = `<div style="width: 20px; height: 20px; background-color: #f3f4f6; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><i class="ph-fill ph-image text-[10px] text-gray-400"></i></div><span style="padding: 0 4px; font-size: 7px; color: #374151;">${name}</span>`; }
+                else if (cardMode === 'photo') {
+                    innerStyle = `background: #f8fafc; border-left: 2px solid ${color}; padding: 0 4px; display: flex; align-items: center; overflow: hidden; box-shadow: none; min-height: 28px;`;
+                    if (ev && ev.image_url) {
+                        contentHTML = `<img src="${ev.image_url}" alt="foto" style="width: 18px; height: 18px; border-radius: 6px; object-fit: cover; margin-right: 6px; flex-shrink: 0;">` +
+                            `<span style="padding: 0 2px; font-size: 11px; color: #374151; font-weight: 500;">${name}</span>`;
+                    } else {
+                        contentHTML = `<div style="width: 18px; height: 18px; background-color: #f3f4f6; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border-radius: 6px;"><i class="ph-fill ph-image text-[10px] text-gray-400"></i></div><span style="padding: 0 2px; font-size: 11px; color: #374151; font-weight: 500;">${name}</span>`;
+                    }
+                }
 
                 else if (cardMode === 'detailed') {
                     innerStyle = `background: white; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.08); border: 1px solid #f1f5f9; border-left: 4px solid ${color}; padding: 4px; display: flex; align-items: center; gap: 8px; margin: 2px 0; min-height: 40px;`;

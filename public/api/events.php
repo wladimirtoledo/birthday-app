@@ -132,11 +132,23 @@ if ($action === 'get_all' && $method === 'GET') {
             }
         }
 
-        if (empty($ev['display_mode'])) $ev['display_mode'] = 'block';
+        if ($ev['type_slug'] === 'holiday') {
+            $ev['display_mode'] = 'background';
+        } else if (empty($ev['display_mode'])) {
+            $ev['display_mode'] = 'block';
+        }
         if (empty($ev['icon'])) $ev['icon'] = 'circle';
         $ev['order'] = ($ev['display_mode'] === 'banner') ? 1 : (($ev['display_mode'] === 'badge') ? 2 : 10);
 
-        $finalEvents[] = $ev;
+        // Filtrar duplicados de feriados por fecha
+        if ($ev['type_slug'] === 'holiday') {
+            $already = array_filter($finalEvents, function($e) use ($ev) {
+                return $e['type_slug'] === 'holiday' && $e['event_date'] === $ev['event_date'];
+            });
+            if (count($already) === 0) $finalEvents[] = $ev;
+        } else {
+            $finalEvents[] = $ev;
+        }
     }
 
     // --- CUMPLEAÑOS ---

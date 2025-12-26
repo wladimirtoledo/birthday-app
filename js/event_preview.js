@@ -12,7 +12,7 @@
 
     // getCardHTML: shared card generator used by previews and renderers
     if (typeof window.getCardHTML !== 'function') {
-        window.getCardHTML = function(cardMode, color, icon, name) {
+        window.getCardHTML = function(cardMode, color, icon, name, ev) {
             let innerStyle = '', innerText = 'text-gray-700', innerIconColor = color;
             let contentHTML = `<i class="ph ph-${icon}" style="color:${innerIconColor}"></i> <span style="${innerText}">${name}</span>`;
 
@@ -21,7 +21,15 @@
             else if (cardMode === 'gradient') { innerStyle=`background:linear-gradient(135deg,${color},#ffffff 180%); color:white; border:1px solid ${color};`; innerText = `color:white; text-shadow:0 1px 2px rgba(0,0,0,0.3);`; contentHTML = `<i class="ph ph-${icon}" style="color:white"></i> <span style="color:white; text-shadow:0 1px 2px rgba(0,0,0,0.3);">${name}</span>`; }
             else if (cardMode === 'important') { innerStyle=`background:${color}; color:white; font-weight:bold; box-shadow:0 2px 4px rgba(0,0,0,0.15); border: 1px solid rgba(0,0,0,0.1); border-left: 3px solid rgba(0,0,0,0.3);`; contentHTML = `<i class="ph-fill ph-${icon}" style="color:white"></i> <span style="color:white">${name}</span>`; }
             else if (cardMode === 'transparent') { innerStyle=`background:transparent; border:1px dashed ${color}; color:${color}; font-weight:500;`; innerText = `color:${color}`; contentHTML = `<i class="ph ph-${icon}" style="color:${color}"></i> <span style="color:${color}">${name}</span>`; }
-            else if (cardMode === 'photo') { innerStyle = `background: white; border-left: 3px solid ${color}; padding: 0; display: flex; align-items: center; overflow: hidden; box-shadow: 0 1px 2px rgba(0,0,0,0.1);`; contentHTML = `<div style="width: 20px; height: 20px; background-color: #f3f4f6; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><i class="ph-fill ph-image text-[10px] text-gray-400"></i></div><span style="padding: 0 4px; font-size: 7px; color: #374151;">${name}</span>`; }
+            else if (cardMode === 'photo') {
+                innerStyle = `background: #f8fafc; border-left: 2px solid ${color}; padding: 0 4px; display: flex; align-items: center; overflow: hidden; box-shadow: none; min-height: 28px;`;
+                if (ev && ev.image_url) {
+                    contentHTML = `<img src="${ev.image_url}" alt="foto" style="width: 18px; height: 18px; border-radius: 6px; object-fit: cover; margin-right: 6px; flex-shrink: 0;">` +
+                        `<span style="padding: 0 2px; font-size: 11px; color: #374151; font-weight: 500;">${name}</span>`;
+                } else {
+                    contentHTML = `<div style="width: 18px; height: 18px; background-color: #f3f4f6; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border-radius: 6px;"><i class="ph-fill ph-image text-[10px] text-gray-400"></i></div><span style="padding: 0 2px; font-size: 11px; color: #374151; font-weight: 500;">${name}</span>`;
+                }
+            }
 
             else if (cardMode === 'detailed') {
                 innerStyle = `background: white; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.08); border: 1px solid #f1f5f9; border-left: 4px solid ${color}; padding: 4px; display: flex; align-items: center; gap: 8px; margin: 2px 0; min-height: 40px;`;
@@ -54,7 +62,7 @@
                 const c = color || '#4F46E5';
                 let nombre = ev.title || '';
                 let edad = (ev.age && !isNaN(ev.age)) ? ` (${ev.age})` : '';
-                let foto = ev.image_url ? `<img src='${ev.image_url}' alt='avatar' style='width:22px;height:22px;border-radius:50%;object-fit:cover;display:inline-block;margin-right:6px;vertical-align:middle;'>` : '';
+                let foto = ev.image_url ? `<img src='${ev.image_url}' alt='avatar' style='width:22px;height:22px;border-radius:50%;object-fit:cover;display:inline-block;margin-right:6px;vertical-align:middle;border:2px solid #EC4899;'>` : '';
                 nm = `${foto}<span style='font-weight:700;color:#1e293b;'>${nombre}${edad}</span>`;
                 // Tarjeta compacta y visualmente consistente
                 html = `<div class=\"w-full p-1.5 rounded text-[7px] truncate flex items-center gap-2 transition-transform transform hover:scale-[1.02] cursor-pointer shadow-sm mb-1\" style=\"background:#fff; border-left:3px solid ${c}; box-shadow:0 1px 2px rgba(0,0,0,0.05);\">${nm}</div>`;
@@ -91,14 +99,29 @@
             const showDateHeader = !(ev && ev.isCalendar);
 
             if (calMode === 'default' || calMode === 'point' || calMode === undefined) {
-                const cardHTML = window.getCardHTML ? window.getCardHTML(cm, c, ic, nm) : '';
+                const cardHTML = window.getCardHTML ? window.getCardHTML(cm, c, ic, nm, ev) : '';
                 html = `${cardHTML}`;
             } else if (calMode === 'badge') {
                 // Badge: mismo tamaño visual que banner
                 html = `<div class="h-4 w-full flex items-center justify-between px-1 shadow-sm z-10" style="background-color:${c}"><span class="text-[6px] font-bold text-white uppercase tracking-wider flex items-center gap-1"><i class="ph-fill ph-${ic}" style="vertical-align:middle; font-size:8px;"></i> ${nm}</span></div>`;
             } else if (calMode === 'background') {
-                // Fondo completo: solo el fondo y el icono/label, sin wrappers
-                html = `<div class="absolute inset-0 flex items-center justify-center opacity-20 pointer-events-none"><i class="ph ph-${ic} text-4xl transform -rotate-12" style="color:${c}"></i></div><div class="absolute bottom-1 right-1 text-[6px] font-bold uppercase opacity-80 pointer-events-none" style="color: ${c}">${nm}</div>`;
+                // Si es feriado, usar diseño idéntico a event_types.php preview (background)
+                if (ev && (ev.type_slug === 'holiday' || ev.slug === 'holiday')) {
+                    const bgRgba = window.hexToRgba ? window.hexToRgba(c, 0.15) : c;
+                    html = `
+                        <div class="w-full h-full p-2 flex flex-col justify-between relative overflow-hidden" style="background-color: ${bgRgba};">
+                            <div class="flex justify-between items-start z-10 relative">
+                                <span class="text-[8px] font-black opacity-60" style="color:${c}">MIÉ</span>
+                                <span class="text-sm font-black" style="color:${c}">24</span>
+                            </div>
+                            <div class="absolute inset-0 flex items-center justify-center opacity-20 pointer-events-none"><i class="ph ph-calendar-blank text-4xl transform -rotate-12" style="color:${c}"></i></div>
+                            <div class="absolute bottom-1 right-1 text-[6px] font-bold uppercase opacity-80 pointer-events-none" style="color: ${c}">${nm}</div>
+                        </div>
+                    `;
+                } else {
+                    // Fondo completo: solo el fondo y el icono/label, sin wrappers
+                    html = `<div class="absolute inset-0 flex items-center justify-center opacity-20 pointer-events-none"><i class="ph ph-${ic} text-4xl transform -rotate-12" style="color:${c}"></i></div><div class="absolute bottom-1 right-1 text-[6px] font-bold uppercase opacity-80 pointer-events-none" style="color: ${c}">${nm}</div>`;
+                }
             } else if (calMode === 'banner') {
                 // Banner: solo la cinta, sin wrappers
                 html = `<div class="h-4 w-full flex items-center justify-between px-1 shadow-sm z-10" style="background-color:${c}"><span class="text-[6px] font-bold text-white uppercase tracking-wider flex items-center gap-1"><i class="ph-bold ph-${ic}"></i> ${nm}</span></div>`;

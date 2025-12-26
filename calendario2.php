@@ -1,0 +1,122 @@
+<?php
+// calendario2.php: Calendario con celdas idénticas a la preview de event_types.php
+require_once 'includes/functions.php';
+requireAuth();
+?>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Calendario Preview</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="js/event_preview.js"></script>
+    <style>
+        .fancy-scroll { overflow-y: auto; scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+        .fancy-scroll::-webkit-scrollbar { width: 6px; }
+        .fancy-scroll::-webkit-scrollbar-track { background: transparent; }
+        .fancy-scroll::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 20px; border: 2px solid transparent; background-clip: content-box; }
+        .fancy-scroll::-webkit-scrollbar-thumb:hover { background-color: #94a3b8; }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans min-h-screen flex flex-col">
+    <div class="shrink-0 bg-white shadow-sm z-20 relative">
+        <?php include 'includes/navbar.php'; ?>
+    </div>
+    <main class="flex-1 max-w-6xl mx-auto w-full py-8 px-4 min-h-0 flex flex-col">
+        <h1 class="text-2xl font-bold text-gray-900 mb-6 flex items-center"><i class="ph ph-calendar-blank mr-3 text-indigo-600 bg-indigo-50 p-2 rounded-lg"></i> Calendario Preview</h1>
+        <div id="calendarPreview" class="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden flex-1 flex flex-col p-8"></div>
+    </main>
+    <?php
+    require_once 'config/db.php';
+    $db = new Database();
+    $pdo = $db->getConnection();
+    $start = '2025-12-15';
+    $end = date('Y-m-d', strtotime($start.' +20 days'));
+    $eventos = [];
+    $sql = "SELECT eve.title, eve.color, eve.event_date, tev.slug as type_slug FROM events eve, event_types tev where eve.event_type_id = tev.id AND eve.event_date BETWEEN ? AND ?";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([$start, $end]);
+    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+        $eventos[] = $row;
+    }
+    ?>
+    <script>
+    const eventos = <?php echo json_encode($eventos); ?>;
+    renderCalendarPreview(eventos);
+
+    function renderCalendarPreview(events) {
+        const startDate = new Date('2025-12-15');
+        const days = Array.from({length: 21}, (_,i) => {
+            const d = new Date(startDate);
+            d.setDate(startDate.getDate() + i);
+            return {
+                num: d.getDate(),
+                dow: d.toLocaleDateString('es-ES', { weekday: 'short' }).toUpperCase().replace('.',''),
+                iso: d.toISOString().slice(0,10)
+            };
+        });
+        const container = document.getElementById('calendarPreview');
+        container.innerHTML = `<div class='w-full max-w-full sm:max-w-7xl md:max-w-8xl aspect-[7/3] bg-gray-50 rounded-3xl shadow-xl overflow-hidden grid grid-cols-7 grid-rows-3 gap-6 text-[20px] text-gray-700 mx-auto p-6 sm:p-12 md:p-16 h-full min-h-[650px]'>
+            ${days.map((d,i)=>{
+                // Obtener todos los eventos de este día
+                const dayEvents = events.filter(e => e.event_date === d.iso);
+                // Detectar si es feriado
+                const feriado = dayEvents.find(e => e.type_slug === 'holiday');
+                // Determinar clase de contenedor: solo aplicar fondo/aro si hay feriado
+                let contClass = 'bg-white relative flex flex-col overflow-hidden z-10 shadow-md transition-all duration-300 min-h-[120px] sm:min-h-[160px] rounded-2xl';
+                if (feriado) {
+                    contClass += ' ring-4 ring-red-200';
+                }
+
+                // BADGES (display_mode = 'badge')
+                const badges = dayEvents.filter(e => e.display_mode === 'badge');
+                const badgesHtml = badges.map(ev => window.getCalendarCellHTML ? window.getCalendarCellHTML('badge', 'badge', ev.color||'#4F46E5', ev.icon||'calendar-blank', ev.title, {...ev, start: d.iso}) : '').join('');
+
+                // HEADER: número y nombre de día
+                let headerHtml = `<div class='flex justify-between items-center px-2 sm:px-4 pt-1 sm:pt-2'>
+                        <span class='text-[11px] sm:text-[13px] font-bold text-gray-400'>${d.dow}</span>
+                        <span class='text-lg sm:text-2xl font-black text-gray-800'>${d.num}</span>
+                    </div>`;
+
+                // EVENTOS (tarjetas, excluyendo holiday y badge)
+                const eventCards = dayEvents.filter(e => e.display_mode !== 'badge' && e.type_slug !== 'holiday');
+                const cardsHtml = eventCards.map(ev => {
+                    // Usa el display_mode para el tipo de tarjeta
+                    const mode = ev.display_mode || 'block';
+                    return window.getCalendarCellHTML ? window.getCalendarCellHTML('default', mode, ev.color||'#4F46E5', ev.icon||'calendar-blank', ev.title, {...ev, start: d.iso}) : '';
+                }).join('');
+
+                // FERIADO TEXTO AL FINAL (eliminado para dejar solo el fondo tipo preview)
+                let feriadoText = '';
+
+                // FONDO DE FERIADO COMO EN event_types.php (preview)
+                let holidayBg = '';
+                if (feriado) {
+                    // Solo el fondo y el icono, sin header ni número de día
+                    if (window.getCalendarCellHTML) {
+                        // Generar el HTML y quitar el header y número de día
+                        let rawBg = window.getCalendarCellHTML('background', 'block', feriado.color||'#EF4444', feriado.icon||'calendar-blank', ` ${feriado.title||'FERIADO'}`, {...feriado, start: d.iso});
+                        // Quitar el header y número de día (span con text-[8px] y text-sm)
+                        rawBg = rawBg.replace(/<span[^>]*text-\[8px\][^>]*>.*?<\/span>/g, '').replace(/<span[^>]*text-sm[^>]*>.*?<\/span>/g, '');
+                        holidayBg = rawBg;
+                    }
+                }
+
+                return `<div class='${contClass} relative'>
+                    ${holidayBg ? `<div class='absolute inset-0 pointer-events-none z-0'>${holidayBg}</div>` : ''}
+                    <div class='relative z-10 flex flex-col h-full'>
+                        ${badgesHtml}
+                        ${headerHtml}
+                        <div class='flex-1 flex flex-col items-center justify-center gap-1 w-full'>${cardsHtml}</div>
+                        ${feriadoText}
+                    </div>
+                </div>`;
+            }).join('')}
+        </div>`;
+    }
+    </script>
+</body>
+    <?php include 'includes/footer.php'; ?>
+</body>
+</html>
