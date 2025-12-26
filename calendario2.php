@@ -23,16 +23,16 @@ requireAuth();
     <div class="shrink-0 bg-white shadow-sm z-20 relative">
         <?php include 'includes/navbar.php'; ?>
     </div>
-    <main class="flex-1 max-w-6xl mx-auto w-full py-8 px-4 min-h-0 flex flex-col">
-        <h1 class="text-2xl font-bold text-gray-900 mb-6 flex items-center"><i class="ph ph-calendar-blank mr-3 text-indigo-600 bg-indigo-50 p-2 rounded-lg"></i> Calendario Preview</h1>
-        <div id="calendarPreview" class="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden flex-1 flex flex-col p-8"></div>
+    <main class="flex-1 max-w-5xl mx-auto w-full py-2 px-0 min-h-0 flex flex-col">
+        <h1 class="text-2xl font-bold text-gray-900 mb-4 flex items-center"><i class="ph ph-calendar-blank mr-3 text-indigo-600 bg-indigo-50 p-2 rounded-lg"></i> Calendario Preview</h1>
+        <div id="calendarPreview" class="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden flex-1 flex flex-col p-0 m-0"></div>
     </main>
     <?php
     require_once 'config/db.php';
     $db = new Database();
     $pdo = $db->getConnection();
     $start = '2025-12-15';
-    $end = date('Y-m-d', strtotime($start.' +20 days'));
+    $end = date('Y-m-d', strtotime($start.' +27 days'));
     $eventos = [];
     $sql = "SELECT eve.title, eve.color, eve.event_date, tev.slug as type_slug FROM events eve, event_types tev where eve.event_type_id = tev.id AND eve.event_date BETWEEN ? AND ?";
     $stmt = $pdo->prepare($sql);
@@ -57,16 +57,18 @@ requireAuth();
             };
         });
         const container = document.getElementById('calendarPreview');
-        container.innerHTML = `<div class='w-full max-w-full sm:max-w-7xl md:max-w-8xl aspect-[7/3] bg-gray-50 rounded-3xl shadow-xl overflow-hidden grid grid-cols-7 grid-rows-3 gap-6 text-[20px] text-gray-700 mx-auto p-6 sm:p-12 md:p-16 h-full min-h-[650px]'>
+        container.innerHTML = `<div class='w-full max-w-5xl aspect-[7/3] bg-white shadow-lg overflow-hidden grid grid-cols-7 grid-rows-3 gap-px text-[16px] text-gray-700 mx-auto p-0 h-full min-h-[420px] border border-gray-200'>
             ${days.map((d,i)=>{
                 // Obtener todos los eventos de este día
                 const dayEvents = events.filter(e => e.event_date === d.iso);
                 // Detectar si es feriado
                 const feriado = dayEvents.find(e => e.type_slug === 'holiday');
                 // Determinar clase de contenedor: solo aplicar fondo/aro si hay feriado
-                let contClass = 'bg-white relative flex flex-col overflow-hidden z-10 shadow-md transition-all duration-300 min-h-[120px] sm:min-h-[160px] rounded-2xl';
+                let contClass = 'bg-white relative flex flex-col overflow-hidden z-10 transition-all duration-300 min-h-[110px] min-w-[0] aspect-square border border-gray-100'; // sin rounded
                 if (feriado) {
-                    contClass += ' ring-4 ring-red-200';
+                    contClass += ' ring-2 ring-red-200';
+                } else {
+                    contClass += ' hover:ring-2 hover:ring-indigo-100';
                 }
 
                 // BADGES (display_mode = 'badge')
@@ -74,9 +76,9 @@ requireAuth();
                 const badgesHtml = badges.map(ev => window.getCalendarCellHTML ? window.getCalendarCellHTML('badge', 'badge', ev.color||'#4F46E5', ev.icon||'calendar-blank', ev.title, {...ev, start: d.iso}) : '').join('');
 
                 // HEADER: número y nombre de día
-                let headerHtml = `<div class='flex justify-between items-center px-2 sm:px-4 pt-1 sm:pt-2'>
-                        <span class='text-[11px] sm:text-[13px] font-bold text-gray-400'>${d.dow}</span>
-                        <span class='text-lg sm:text-2xl font-black text-gray-800'>${d.num}</span>
+                let headerHtml = `<div class='flex justify-between items-center px-2 pt-1'>
+                        <span class='text-[10px] font-bold text-gray-400'>${d.dow}</span>
+                        <span class='text-xl font-black text-gray-800'>${d.num}</span>
                     </div>`;
 
                 // EVENTOS (tarjetas, excluyendo holiday y badge)
@@ -108,8 +110,7 @@ requireAuth();
                     <div class='relative z-10 flex flex-col h-full'>
                         ${badgesHtml}
                         ${headerHtml}
-                        <div class='flex-1 flex flex-col items-center justify-center gap-1 w-full'>${cardsHtml}</div>
-                        ${feriadoText}
+                        <div class='flex-1 flex flex-col items-center justify-center gap-0.5 w-full px-1 pb-1'>${cardsHtml}</div>
                     </div>
                 </div>`;
             }).join('')}
