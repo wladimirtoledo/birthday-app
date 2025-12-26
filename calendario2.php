@@ -34,7 +34,7 @@ requireAuth();
     $start = '2025-12-15';
     $end = date('Y-m-d', strtotime($start.' +27 days'));
     $eventos = [];
-    $sql = "SELECT eve.title, eve.color, eve.event_date, tev.slug as type_slug FROM events eve, event_types tev where eve.event_type_id = tev.id AND eve.event_date BETWEEN ? AND ?";
+    $sql = "SELECT eve.title, eve.color, eve.event_date, tev.slug as type_slug, tev.display_mode, tev.icon FROM events eve, event_types tev where eve.event_type_id = tev.id AND eve.event_date BETWEEN ? AND ?";
     $stmt = $pdo->prepare($sql);
     $stmt->execute([$start, $end]);
     while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
@@ -46,10 +46,16 @@ requireAuth();
     renderCalendarPreview(eventos);
 
     function renderCalendarPreview(events) {
+        // Ajustar para que el primer día de la semana sea lunes
         const startDate = new Date('2025-12-15');
+        // Calcular el lunes anterior o igual al startDate
+        const dayOfWeek = startDate.getDay(); // 0=domingo, 1=lunes, ...
+        const offset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+        const calendarStart = new Date(startDate);
+        calendarStart.setDate(startDate.getDate() + offset);
         const days = Array.from({length: 28}, (_,i) => {
-            const d = new Date(startDate);
-            d.setDate(startDate.getDate() + i);
+            const d = new Date(calendarStart);
+            d.setDate(calendarStart.getDate() + i);
             return {
                 num: d.getDate(),
                 dow: d.toLocaleDateString('es-ES', { weekday: 'short' }).toUpperCase().replace('.',''),
@@ -57,7 +63,7 @@ requireAuth();
             };
         });
         const container = document.getElementById('calendarPreview');
-        const weekDays = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+        const weekDays = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
         container.innerHTML = `
         <div class='w-full max-w-5xl bg-white shadow-lg overflow-hidden border border-gray-200'>
             <div class='grid grid-cols-7 bg-gray-50 border-b border-gray-200'>
@@ -90,9 +96,11 @@ requireAuth();
                 // EVENTOS (tarjetas, excluyendo holiday y badge)
                 const eventCards = dayEvents.filter(e => e.display_mode !== 'badge' && e.type_slug !== 'holiday');
                 const cardsHtml = eventCards.map(ev => {
-                    // Usa el display_mode para el tipo de tarjeta
+                    // Usa el display_mode, color e icono definidos en event_types.php
                     const mode = ev.display_mode || 'block';
-                    return window.getCalendarCellHTML ? window.getCalendarCellHTML('default', mode, ev.color||'#4F46E5', ev.icon||'calendar-blank', ev.title, {...ev, start: d.iso}) : '';
+                    const color = ev.color || '#4F46E5';
+                    const icon = ev.icon || 'calendar-blank';
+                    return window.getCalendarCellHTML ? window.getCalendarCellHTML('default', mode, color, icon, ev.title, {...ev, start: d.iso}) : '';
                 }).join('');
 
                 // FERIADO TEXTO AL FINAL (eliminado para dejar solo el fondo tipo preview)
