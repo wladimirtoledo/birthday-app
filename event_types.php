@@ -127,22 +127,6 @@ if (!hasRole(['admin', 'moderator'])) { header("Location: index.php"); exit; }
                                     <i class="ph ph-check-circle-fill absolute top-2 right-2 text-indigo-600 text-lg opacity-0 transition-all mode-icon"></i>
                                 </div>
                             </label>
-                            <!-- Etiqueta -->
-                            <label class="cursor-pointer group relative" title="Muestra una etiqueta compacta en la parte superior del día.">
-                                <input type="radio" name="cal_view" value="badge" class="cal-radio hidden" onchange="updatePreview()">
-                                <div class="border border-white bg-white rounded-xl p-3 hover:border-indigo-300 transition flex items-center gap-3 shadow-sm h-full">
-                                    <div class="w-8 h-8 bg-white border border-gray-200 rounded flex flex-col p-1 justify-center gap-1"><div class="h-1.5 bg-indigo-500 rounded-sm"></div></div>
-                                    <div><span class="block text-sm font-bold text-gray-800">Etiqueta (Badge)</span><span class="block text-[10px] text-gray-500 leading-tight">Barra compacta.</span></div>
-                                </div>
-                            </label>
-                            <!-- Cinta -->
-                            <label class="cursor-pointer group relative" title="Agrega una cinta de color en la parte superior del día.">
-                                <input type="radio" name="cal_view" value="banner" class="cal-radio hidden" onchange="updatePreview()">
-                                <div class="border border-white bg-white rounded-xl p-3 hover:border-indigo-300 transition flex items-center gap-3 shadow-sm h-full">
-                                    <div class="w-8 h-8 bg-white border border-gray-200 rounded flex flex-col overflow-hidden"><div class="h-2.5 bg-indigo-500 w-full"></div></div>
-                                    <div><span class="block text-sm font-bold text-gray-800">Cinta Superior</span><span class="block text-[10px] text-gray-500 leading-tight">Destaca encabezado.</span></div>
-                                </div>
-                            </label>
                             <!-- Fondo -->
                             <label class="cursor-pointer group relative" title="Pinta todo el fondo del día con el color seleccionado.">
                                 <input type="radio" name="cal_view" value="background" class="cal-radio hidden" onchange="updatePreview()">
@@ -169,6 +153,10 @@ if (!hasRole(['admin', 'moderator'])) { header("Location: index.php"); exit; }
                             <label class="cursor-pointer group text-center" title="Estilo minimalista con borde punteado."><input type="radio" name="card_view" value="transparent" class="card-radio hidden" onchange="updatePreview()"><div class="border border-gray-200 rounded-xl p-3 hover:border-indigo-300 transition h-full flex flex-col items-center justify-center bg-white"><div class="w-8 h-5 border border-dashed border-gray-400 mb-2"></div><span class="text-[10px] font-bold text-gray-600">Minimal</span></div></label>
                             <label class="cursor-pointer group text-center" title="Versión compacta del estándar."><input type="radio" name="card_view" value="compact" class="card-radio hidden" onchange="updatePreview()"><div class="border border-gray-200 rounded-xl p-3 hover:border-indigo-300 transition h-full flex flex-col items-center justify-center bg-white"><div class="w-8 h-3 bg-white border-l-2 border-gray-400 shadow-sm mb-2"></div><span class="text-[10px] font-bold text-gray-600">Compacto</span></div></label>
                             <label class="cursor-pointer group text-center" title="Borde punteado de color."><input type="radio" name="card_view" value="outline" class="card-radio hidden" onchange="updatePreview()"><div class="border border-gray-200 rounded-xl p-3 hover:border-indigo-300 transition h-full flex flex-col items-center justify-center bg-white"><div class="w-8 h-5 border-2 border-dashed border-indigo-400 mb-2"></div><span class="text-[10px] font-bold text-gray-600">Contorno</span></div></label>
+                            <!-- Badge como tarjeta -->
+                            <label class="cursor-pointer group text-center" title="Tarjeta tipo etiqueta/badge."><input type="radio" name="card_view" value="badge" class="card-radio hidden" onchange="updatePreview()"><div class="border border-gray-200 rounded-xl p-3 hover:border-indigo-300 transition h-full flex flex-col items-center justify-center bg-white"><div class="w-8 h-5 flex items-center justify-center mb-2"><div class="h-1.5 w-6 bg-indigo-500 rounded-sm"></div></div><span class="text-[10px] font-bold text-gray-600">Etiqueta (Badge)</span></div></label>
+                            <!-- Banner como tarjeta -->
+                            <label class="cursor-pointer group text-center" title="Tarjeta tipo cinta/banner."><input type="radio" name="card_view" value="banner" class="card-radio hidden" onchange="updatePreview()"><div class="border border-gray-200 rounded-xl p-3 hover:border-indigo-300 transition h-full flex flex-col items-center justify-center bg-white"><div class="w-8 h-5 flex items-center justify-center mb-2"><div class="h-2.5 w-8 bg-indigo-500 rounded"></div></div><span class="text-[10px] font-bold text-gray-600">Cinta Superior</span></div></label>
                         </div>
                     </div>
 
@@ -266,8 +254,10 @@ if (!hasRole(['admin', 'moderator'])) { header("Location: index.php"); exit; }
 
         // --- LÓGICA PRINCIPAL UNIFICADA (updatePreview) ---
         function updatePreview() {
-            const calMode = document.querySelector('input[name="cal_view"]:checked').value;
-            const cardMode = document.querySelector('input[name="card_view"]:checked').value;
+            const calModeInput = document.querySelector('input[name="cal_view"]:checked');
+            const cardModeInput = document.querySelector('input[name="card_view"]:checked');
+            const calMode = calModeInput.value;
+            const cardMode = cardModeInput.value;
             const sectionCards = document.getElementById('sectionCards');
             const realInput = document.getElementById('realDisplayMode');
             const helpText = document.getElementById('previewText');
@@ -279,14 +269,17 @@ if (!hasRole(['admin', 'moderator'])) { header("Location: index.php"); exit; }
             const activeIcon = document.querySelector('.icon-radio:checked + label');
             if(activeIcon) activeIcon.className="flex items-center justify-center h-8 w-8 rounded-md bg-indigo-600 text-white shadow-md transform scale-110 cursor-pointer transition";
 
-            if (calMode === 'default') {
-                sectionCards.classList.remove('section-disabled');
-                realInput.value = cardMode; 
-                helpText.innerText = "Modo Estándar: El evento se muestra dentro del día usando el estilo de tarjeta seleccionado.";
-            } else {
+            // Solo deshabilitar selección de tarjeta si se elige Fondo Completo
+            const calRadios = document.querySelectorAll('input[name="cal_view"]');
+            calRadios.forEach(radio => { radio.disabled = false; });
+            if (calMode === 'background') {
                 sectionCards.classList.add('section-disabled');
-                realInput.value = calMode; 
+                realInput.value = calMode;
                 helpText.innerText = "Modo Especial: Destaca el día o encabezado. El estilo de tarjeta se ignora en la vista mensual.";
+            } else {
+                sectionCards.classList.remove('section-disabled');
+                realInput.value = cardMode;
+                helpText.innerText = "Modo Estándar: El evento se muestra dentro del día usando el estilo de tarjeta seleccionado.";
             }
 
             renderUnifiedPreview(calMode, cardMode, color, icon);
@@ -329,6 +322,16 @@ if (!hasRole(['admin', 'moderator'])) { header("Location: index.php"); exit; }
                     `;
                 }
 
+                // NUEVO: badge y banner como card_view pero visual tipo cal_view
+                else if (cardMode === 'badge') {
+                    innerStyle = `background: white; padding: 0.25rem 0.5rem; border-radius: 9999px; display: inline-flex; align-items: center; font-weight: bold; font-size: 11px; color: white; box-shadow: 0 1px 4px rgba(0,0,0,0.06); margin-bottom: 2px; background-color: ${color};`;
+                    contentHTML = `<i class='ph-fill ph-${icon}'></i> <span>${name}</span>`;
+                }
+                else if (cardMode === 'banner') {
+                    innerStyle = `background: ${color}; color: white; border-radius: 6px 6px 0 0; padding: 0.25rem 0.5rem; font-weight: bold; font-size: 11px; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 4px rgba(0,0,0,0.06); margin-bottom: 2px;`;
+                    contentHTML = `<i class='ph-bold ph-${icon}'></i> <span>${name}</span>`;
+                }
+
                 return `
                     <div class="w-full ${cardMode!=='photo'&&cardMode!=='detailed'?'p-1.5':''} rounded text-[7px] truncate flex items-center gap-1 transition-transform transform hover:scale-[1.02] cursor-pointer shadow-sm mb-1" style="${innerStyle}">
                         ${contentHTML}
@@ -342,8 +345,37 @@ if (!hasRole(['admin', 'moderator'])) { header("Location: index.php"); exit; }
             const name = document.getElementById('typeName').value || 'Tipo';
             let html = '';
 
+            // Si cualquiera de los dos es badge/banner, mostrar visualización especial
+            if (calMode === 'badge' || cardMode === 'badge') {
+                html = `
+                    <div class="w-full h-full p-2 flex flex-col bg-white">
+                        <div class="flex justify-between items-start mb-1">
+                             <span class="text-[8px] font-bold text-gray-400 uppercase">MIÉ</span>
+                             <span class="text-sm font-black text-gray-800">24</span>
+                        </div>
+                        <div class="w-fit max-w-full py-0.5 px-2 rounded-full mb-1 text-[7px] font-bold text-white flex items-center gap-1 shadow-sm" style="background-color:${color}">
+                            <i class="ph-fill ph-${icon}"></i> ${name}
+                        </div>
+                        <div class="w-full h-2 rounded bg-gray-50 border border-gray-100 mt-auto"></div>
+                    </div>`;
+            }
+            else if (calMode === 'banner' || cardMode === 'banner') {
+                html = `
+                    <div class="w-full h-full flex flex-col bg-white">
+                        <div class="h-4 w-full flex items-center justify-between px-1 shadow-sm z-10" style="background-color:${color}">
+                            <span class="text-[6px] font-bold text-white uppercase tracking-wider flex items-center gap-1"><i class="ph-bold ph-${icon}"></i> ${name}</span>
+                        </div>
+                        <div class="p-2 relative flex-1">
+                            <div class="flex justify-between items-start opacity-30 mb-1">
+                                <span class="text-[8px] font-black">MIÉ</span>
+                                <span class="text-sm font-black">24</span>
+                            </div>
+                            <div class="bg-gray-100 p-0.5 rounded w-3/4 mb-1 h-1"></div>
+                        </div>
+                    </div>`;
+            }
             // CASO 1: PUNTO ESTÁNDAR -> TARJETA DENTRO DE CELDA
-            if (calMode === 'default') {
+            else if (calMode === 'default') {
                 const cardHTML = getCardHTML(cardMode, color, icon, name);
                 html = `
                     <div class="w-full h-full p-2 flex flex-col justify-between">
@@ -355,21 +387,6 @@ if (!hasRole(['admin', 'moderator'])) { header("Location: index.php"); exit; }
                             ${cardHTML} <!-- TARJETA CLONADA -->
                             <div class="w-3/4 h-1 bg-gray-100 rounded opacity-50"></div>
                         </div>
-                    </div>`;
-            }
-
-            // CASO 2: ETIQUETA (BADGE)
-            else if (calMode === 'badge') {
-                html = `
-                    <div class="w-full h-full p-2 flex flex-col bg-white">
-                        <div class="flex justify-between items-start mb-1">
-                             <span class="text-[8px] font-bold text-gray-400 uppercase">MIÉ</span>
-                             <span class="text-sm font-black text-gray-800">24</span>
-                        </div>
-                        <div class="w-fit max-w-full py-0.5 px-2 rounded-full mb-1 text-[7px] font-bold text-white flex items-center gap-1 shadow-sm" style="background-color:${color}">
-                            <i class="ph-fill ph-${icon}"></i> ${name}
-                        </div>
-                        <div class="w-full h-2 rounded bg-gray-50 border border-gray-100 mt-auto"></div>
                     </div>`;
             }
 
@@ -387,22 +404,7 @@ if (!hasRole(['admin', 'moderator'])) { header("Location: index.php"); exit; }
                     </div>`;
             } 
             
-            // CASO 4: CINTA (BANNER)
-            else if (calMode === 'banner') {
-                html = `
-                    <div class="w-full h-full flex flex-col bg-white">
-                        <div class="h-4 w-full flex items-center justify-between px-1 shadow-sm z-10" style="background-color:${color}">
-                            <span class="text-[6px] font-bold text-white uppercase tracking-wider flex items-center gap-1"><i class="ph-bold ph-${icon}"></i> ${name}</span>
-                        </div>
-                        <div class="p-2 relative flex-1">
-                            <div class="flex justify-between items-start opacity-30 mb-1">
-                                <span class="text-[8px] font-black">MIÉ</span>
-                                <span class="text-sm font-black">24</span>
-                            </div>
-                            <div class="bg-gray-100 p-0.5 rounded w-3/4 mb-1 h-1"></div>
-                        </div>
-                    </div>`;
-            }
+
             
             container.innerHTML = html;
             container.classList.add('preview-fade');
@@ -413,10 +415,22 @@ if (!hasRole(['admin', 'moderator'])) { header("Location: index.php"); exit; }
         function renderCardPreview(calMode, cardMode, color, icon) {
             const container = document.getElementById('previewCard');
             const name = document.getElementById('typeName').value || 'Tipo';
-            
-            if (calMode === 'banner') { container.innerHTML = `<div class="w-full flex justify-center items-center h-28"><div class="w-full p-2 rounded shadow-md text-white text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transform scale-110" style="background-color: ${color}"><i class="ph-bold ph-${icon}"></i> ${name}</div></div>`; return; }
-            if (calMode === 'badge') { container.innerHTML = `<div class="w-full flex justify-center h-28 items-center"><div class="px-3 py-1.5 rounded-full text-white text-xs font-bold shadow-md flex items-center gap-2 transform scale-125" style="background-color: ${color}"><i class="ph-fill ph-${icon}"></i> ${name}</div></div>`; return; }
 
+            // Si cualquiera de los dos es badge/banner, mostrar visualización especial
+            if (calMode === 'badge' || cardMode === 'badge') {
+                container.innerHTML = `<div class="w-full flex justify-center h-28 items-center"><div class="px-3 py-1.5 rounded-full text-white text-xs font-bold shadow-md flex items-center gap-2 transform scale-125" style="background-color: ${color}"><i class="ph-fill ph-${icon}"></i> ${name}</div></div>`;
+                container.classList.add('preview-fade');
+                setTimeout(() => container.classList.remove('preview-fade'), 300);
+                return;
+            }
+            if (calMode === 'banner' || cardMode === 'banner') {
+                container.innerHTML = `<div class="w-full flex justify-center items-center h-28"><div class="w-full p-2 rounded shadow-md text-white text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transform scale-110" style="background-color: ${color}"><i class="ph-bold ph-${icon}"></i> ${name}</div></div>`;
+                container.classList.add('preview-fade');
+                setTimeout(() => container.classList.remove('preview-fade'), 300);
+                return;
+            }
+
+            // Usar getCardHTML para los demás estilos
             const cardHTML = getCardHTML(cardMode, color, icon, name);
             // Escalar para la vista previa de Agenda
             const largeHTML = cardHTML.replace('text-[7px]', 'text-xs').replace('p-1.5', 'p-3').replace('mb-1', 'mb-0')
