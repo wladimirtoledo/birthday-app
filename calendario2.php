@@ -47,7 +47,7 @@ requireAuth();
 
     function renderCalendarPreview(events) {
         const startDate = new Date('2025-12-15');
-        const days = Array.from({length: 21}, (_,i) => {
+        const days = Array.from({length: 28}, (_,i) => {
             const d = new Date(startDate);
             d.setDate(startDate.getDate() + i);
             return {
@@ -57,7 +57,13 @@ requireAuth();
             };
         });
         const container = document.getElementById('calendarPreview');
-        container.innerHTML = `<div class='w-full max-w-5xl aspect-[7/3] bg-white shadow-lg overflow-hidden grid grid-cols-7 grid-rows-3 gap-px text-[16px] text-gray-700 mx-auto p-0 h-full min-h-[420px] border border-gray-200'>
+        const weekDays = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+        container.innerHTML = `
+        <div class='w-full max-w-5xl bg-white shadow-lg overflow-hidden border border-gray-200'>
+            <div class='grid grid-cols-7 bg-gray-50 border-b border-gray-200'>
+                ${weekDays.map(day => `<div class='text-center py-2 font-bold text-gray-500 text-[15px] uppercase'>${day}</div>`).join('')}
+            </div>
+            <div class='aspect-[7/4] grid grid-cols-7 grid-rows-4 gap-px text-[16px] text-gray-700 mx-auto p-0'>
             ${days.map((d,i)=>{
                 // Obtener todos los eventos de este día
                 const dayEvents = events.filter(e => e.event_date === d.iso);
@@ -114,6 +120,7 @@ requireAuth();
                     </div>
                 </div>`;
             }).join('')}
+            </div>
         </div>`;
     }
     </script>
