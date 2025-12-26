@@ -57,10 +57,10 @@ requireAuth();
         }
 
         // Header y eventos normales (siempre presentes)
-        let headerHtml = `<div class='flex justify-between items-start'>
-            <span class='text-[8px] font-bold text-gray-400 uppercase'>${day.dow}</span>
-            <span class='text-sm font-black text-gray-800'>${day.num}</span>
-        </div>`;
+        let headerHtml = `
+            <span style="font-size:8px;font-weight:700;color:#9ca3af;text-transform:uppercase;line-height:1;">${day.dow}</span>
+            <span style="font-size:15px;font-weight:900;color:#1e293b;line-height:1;">${day.num}</span>
+        `;
         const eventCards = dayEvents.filter(e => e.display_mode !== 'badge' && e.display_mode !== 'banner' && e.display_mode !== 'background' && e.type_slug !== 'holiday');
         const cardsHtml = eventCards.map(ev => {
             const mode = ev.display_mode || 'block';
@@ -74,43 +74,96 @@ requireAuth();
         const badge = dayEvents.find(e => e.display_mode === 'badge');
         let badgeHtml = '';
         if (badge) {
-            badgeHtml = `<div class="w-fit max-w-full py-0.5 px-2 rounded-full mb-1 text-[7px] font-bold text-white flex items-center gap-1 shadow-sm" style="background-color:${badge.color||'#4F46E5'}">
-                <i class="ph-fill ph-${badge.icon||'calendar-blank'}"></i> ${badge.title||'Tipo'}
-            </div>`;
+            badgeHtml = `
+                <div class=\"flex justify-between items-start mb-1\" style=\"margin-bottom:2px;\">
+                    <span style=\"font-size:8px;font-weight:700;color:#9ca3af;text-transform:uppercase;line-height:1;\">${day.dow}</span>
+                    <span style=\"font-size:15px;font-weight:900;color:#1e293b;line-height:1;\">${day.num}</span>
+                </div>
+                <div class=\"w-fit max-w-full py-0.5 px-2 rounded-full mb-1 text-[7px] font-bold text-white flex items-center gap-1 shadow-sm\" style=\"background-color:${badge.color||'#4F46E5'}\"><i class=\"ph-fill ph-${badge.icon||'calendar-blank'}\"></i> ${badge.title||'Tipo'}</div>
+            `;
         }
         // Banner
         const banner = dayEvents.find(e => e.display_mode === 'banner');
         let bannerHtml = '';
         if (banner) {
-            bannerHtml = `<div class="h-4 w-full flex items-center justify-between px-1 shadow-sm z-10 mb-1" style="background-color:${banner.color||'#4F46E5'}">
-                <span class="text-[6px] font-bold text-white uppercase tracking-wider flex items-center gap-1"><i class="ph-bold ph-${banner.icon||'calendar-blank'}"></i> ${banner.title||'Tipo'}</span>
-            </div>`;
+            bannerHtml = `
+                <div class=\"h-4 w-full flex items-center justify-between px-1 shadow-sm z-10 mb-1\" style=\"background-color:${banner.color||'#4F46E5'}\">
+                    <span class=\"text-[6px] font-bold text-white uppercase tracking-wider flex items-center gap-1\"><i class=\"ph-bold ph-${banner.icon||'calendar-blank'}\"></i> ${banner.title||'Tipo'}</span>
+                </div>
+                <div class=\"flex justify-between items-start mb-1\" style=\"margin-bottom:2px;\">
+                    <span style=\"font-size:8px;font-weight:700;color:#9ca3af;text-transform:uppercase;line-height:1;\">${day.dow}</span>
+                    <span style=\"font-size:15px;font-weight:900;color:#1e293b;line-height:1;\">${day.num}</span>
+                </div>
+            `;
         }
         // Fondo completo (background/feriado)
         const feriado = dayEvents.find(e => e.display_mode === 'background' || e.type_slug === 'holiday');
         let feriadoBg = '';
         let feriadoOverlay = '';
+        let feriadoLabel = '';
         if (feriado) {
             const color = feriado.color || '#EF4444';
             const icon = feriado.icon || 'calendar-blank';
             const name = feriado.title || 'FERIADO';
             const bgRgba = window.hexToRgba ? window.hexToRgba(color, 0.15) : color;
             feriadoBg = `background-color: ${bgRgba};`;
-            feriadoOverlay = `<div class="absolute inset-0 flex items-center justify-center opacity-20 pointer-events-none z-0"><i class="ph ph-${icon} text-4xl transform -rotate-12" style="color:${color}"></i></div>
-                <div class="absolute bottom-1 right-1 text-[6px] font-bold uppercase opacity-80 pointer-events-none z-0" style="color: ${color}">${name}</div>`;
+            feriadoOverlay = `<div class=\"absolute inset-0 flex items-center justify-center opacity-20 pointer-events-none z-0\"><i class=\"ph ph-${icon} text-4xl transform -rotate-12\" style=\"color:${color}\"></i></div>`;
+            feriadoLabel = `<div class=\"absolute bottom-1 right-1 text-[6px] font-bold uppercase opacity-80 pointer-events-none z-10\" style=\"color: ${color}\">${name}</div>`;
         }
 
+        // Renderizado exacto de preview para badge y/o banner
+        if (banner) {
+            return `<div class='${contClass} relative' style='${feriadoBg}'>
+                ${feriadoOverlay}
+                <div class="w-full h-full flex flex-col bg-white relative z-10">
+                    <div class="h-4 w-full flex items-center justify-between px-1 shadow-sm z-10" style="background-color:${banner.color||'#4F46E5'}">
+                        <span class="text-[6px] font-bold text-white uppercase tracking-wider flex items-center gap-1"><i class="ph-bold ph-${banner.icon||'calendar-blank'}"></i> ${banner.title||'Tipo'}</span>
+                    </div>
+                    <div class="p-2 relative flex-1">
+                        <div class="flex justify-between items-start opacity-30 mb-1">
+                            <span class="text-[8px] font-black">${day.dow}</span>
+                            <span class="text-sm font-black">${day.num}</span>
+                        </div>
+                        ${badge ? `<div class=\"w-fit max-w-full py-0.5 px-2 rounded-full mb-1 text-[7px] font-bold text-white flex items-center gap-1 shadow-sm\" style=\"background-color:${badge.color||'#4F46E5'}\"><i class=\"ph-fill ph-${badge.icon||'calendar-blank'}\"></i> ${badge.title||'Tipo'}</div>` : ''}
+                        <div class='flex flex-col gap-0.5'>
+                            ${cardsHtml}
+                            <div class="bg-gray-100 p-0.5 rounded w-3/4 mb-1 h-1"></div>
+                        </div>
+                    </div>
+                    ${feriadoLabel}
+                </div>
+            </div>`;
+        }
+        if (badge) {
+            return `<div class='${contClass} relative' style='${feriadoBg}'>
+                ${feriadoOverlay}
+                <div class="w-full h-full p-2 flex flex-col bg-white relative z-10">
+                    <div class="flex justify-between items-start mb-1">
+                        <span class="text-[8px] font-bold text-gray-400 uppercase">${day.dow}</span>
+                        <span class="text-sm font-black text-gray-800">${day.num}</span>
+                    </div>
+                    <div class="w-fit max-w-full py-0.5 px-2 rounded-full mb-1 text-[7px] font-bold text-white flex items-center gap-1 shadow-sm" style="background-color:${badge.color||'#4F46E5'}">
+                        <i class="ph-fill ph-${badge.icon||'calendar-blank'}"></i> ${badge.title||'Tipo'}
+                    </div>
+                    <div class='flex flex-col gap-0.5'>
+                        ${cardsHtml}
+                        <div class="w-full h-2 rounded bg-gray-50 border border-gray-100 mt-auto"></div>
+                    </div>
+                    ${feriadoLabel}
+                </div>
+            </div>`;
+        }
+        // ...render normal...
         return `<div class='${contClass} relative' style='${feriadoBg}'>
+            ${feriadoOverlay}
             <div class='w-full h-full p-2 flex flex-col justify-between bg-white/80 relative z-10'>
-                ${bannerHtml}
-                <div class="flex justify-between items-start mb-1">${headerHtml}</div>
-                ${badgeHtml}
+                <div class="flex justify-between items-start mb-1" style="margin-bottom:4px;align-items:flex-start;">${headerHtml}</div>
                 <div class='flex flex-col gap-0.5'>
                     ${cardsHtml}
                     <div class='w-3/4 h-1 bg-gray-100 rounded opacity-50'></div>
                 </div>
+                ${feriadoLabel}
             </div>
-            ${feriadoOverlay}
         </div>`;
     }
 
