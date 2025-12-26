@@ -34,10 +34,17 @@ requireAuth();
     $start = '2025-12-15';
     $end = date('Y-m-d', strtotime($start.' +27 days'));
     $eventos = [];
-    $sql = "SELECT eve.title, eve.color, eve.event_date, tev.slug as type_slug, tev.display_mode, tev.icon FROM events eve, event_types tev where eve.event_type_id = tev.id AND eve.event_date BETWEEN ? AND ?";
+    $sql = "SELECT eve.title, eve.color, eve.event_date, eve.image, tev.slug as type_slug, tev.display_mode, tev.icon FROM events eve, event_types tev where eve.event_type_id = tev.id AND eve.event_date BETWEEN ? AND ?";
     $stmt = $pdo->prepare($sql);
     $stmt->execute([$start, $end]);
     while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+        // Si hay imagen, convertirla a base64 para usar como image_url
+        if (!empty($row['image'])) {
+            $row['image_url'] = 'data:image/jpeg;base64,' . base64_encode($row['image']);
+        } else {
+            $row['image_url'] = null;
+        }
+        unset($row['image']);
         $eventos[] = $row;
     }
     ?>
@@ -47,7 +54,8 @@ requireAuth();
 
     // Clon literal de renderUnifiedPreview de event_types.php para cada celda
     function renderCellPreview(day, dayEvents) {
-        // Determinar modo especial
+        // --- LÓGICA UNIFICADA LIMPIA ---
+        // Determinar modo especial para clases
         const special = dayEvents.find(e => e.display_mode === 'background' || e.display_mode === 'badge' || e.display_mode === 'banner' || e.type_slug === 'holiday');
         let contClass = 'bg-white relative flex flex-col overflow-hidden z-10 shadow-2xl ring-4 ring-indigo-50/50 transition-all duration-300 min-h-[110px] min-w-[0] aspect-square border border-gray-100';
         if (special && (special.display_mode === 'background' || special.type_slug === 'holiday')) {
@@ -56,47 +64,7 @@ requireAuth();
             contClass += ' hover:ring-2 hover:ring-indigo-100';
         }
 
-        // Header y eventos normales (siempre presentes)
-        let headerHtml = `
-            <span style="font-size:8px;font-weight:700;color:#9ca3af;text-transform:uppercase;line-height:1;">${day.dow}</span>
-            <span style="font-size:15px;font-weight:900;color:#1e293b;line-height:1;">${day.num}</span>
-        `;
-        const eventCards = dayEvents.filter(e => e.display_mode !== 'badge' && e.display_mode !== 'banner' && e.display_mode !== 'background' && e.type_slug !== 'holiday');
-        const cardsHtml = eventCards.map(ev => {
-            const mode = ev.display_mode || 'block';
-            const color = ev.color || '#4F46E5';
-            const icon = ev.icon || 'calendar-blank';
-            const name = ev.title || 'Tipo';
-            return window.getCardHTML ? window.getCardHTML(mode, color, icon, name, {...ev, start: day.iso}) : '';
-        }).join('');
-
-        // Badge
-        const badge = dayEvents.find(e => e.display_mode === 'badge');
-        let badgeHtml = '';
-        if (badge) {
-            badgeHtml = `
-                <div class=\"flex justify-between items-start mb-1\" style=\"margin-bottom:2px;\">
-                    <span style=\"font-size:8px;font-weight:700;color:#9ca3af;text-transform:uppercase;line-height:1;\">${day.dow}</span>
-                    <span style=\"font-size:15px;font-weight:900;color:#1e293b;line-height:1;\">${day.num}</span>
-                </div>
-                <div class=\"w-fit max-w-full py-0.5 px-2 rounded-full mb-1 text-[7px] font-bold text-white flex items-center gap-1 shadow-sm\" style=\"background-color:${badge.color||'#4F46E5'}\"><i class=\"ph-fill ph-${badge.icon||'calendar-blank'}\"></i> ${badge.title||'Tipo'}</div>
-            `;
-        }
-        // Banner
-        const banner = dayEvents.find(e => e.display_mode === 'banner');
-        let bannerHtml = '';
-        if (banner) {
-            bannerHtml = `
-                <div class=\"h-4 w-full flex items-center justify-between px-1 shadow-sm z-10 mb-1\" style=\"background-color:${banner.color||'#4F46E5'}\">
-                    <span class=\"text-[6px] font-bold text-white uppercase tracking-wider flex items-center gap-1\"><i class=\"ph-bold ph-${banner.icon||'calendar-blank'}\"></i> ${banner.title||'Tipo'}</span>
-                </div>
-                <div class=\"flex justify-between items-start mb-1\" style=\"margin-bottom:2px;\">
-                    <span style=\"font-size:8px;font-weight:700;color:#9ca3af;text-transform:uppercase;line-height:1;\">${day.dow}</span>
-                    <span style=\"font-size:15px;font-weight:900;color:#1e293b;line-height:1;\">${day.num}</span>
-                </div>
-            `;
-        }
-        // Fondo completo (background/feriado)
+        // Fondo especial (feriado/background)
         const feriado = dayEvents.find(e => e.display_mode === 'background' || e.type_slug === 'holiday');
         let feriadoBg = '';
         let feriadoOverlay = '';
@@ -111,56 +79,49 @@ requireAuth();
             feriadoLabel = `<div class=\"absolute bottom-1 right-1 text-[6px] font-bold uppercase opacity-80 pointer-events-none z-10\" style=\"color: ${color}\">${name}</div>`;
         }
 
-        // Renderizado exacto de preview para badge y/o banner
-        if (banner) {
-            return `<div class='${contClass} relative' style='${feriadoBg}'>
-                ${feriadoOverlay}
-                <div class="w-full h-full flex flex-col bg-white relative z-10">
-                    <div class="h-4 w-full flex items-center justify-between px-1 shadow-sm z-10" style="background-color:${banner.color||'#4F46E5'}">
-                        <span class="text-[6px] font-bold text-white uppercase tracking-wider flex items-center gap-1"><i class="ph-bold ph-${banner.icon||'calendar-blank'}"></i> ${banner.title||'Tipo'}</span>
-                    </div>
-                    <div class="p-2 relative flex-1">
-                        <div class="flex justify-between items-start opacity-30 mb-1">
-                            <span class="text-[8px] font-black">${day.dow}</span>
-                            <span class="text-sm font-black">${day.num}</span>
-                        </div>
-                        ${badge ? `<div class=\"w-fit max-w-full py-0.5 px-2 rounded-full mb-1 text-[7px] font-bold text-white flex items-center gap-1 shadow-sm\" style=\"background-color:${badge.color||'#4F46E5'}\"><i class=\"ph-fill ph-${badge.icon||'calendar-blank'}\"></i> ${badge.title||'Tipo'}</div>` : ''}
-                        <div class='flex flex-col gap-0.5'>
-                            ${cardsHtml}
-                            <div class="bg-gray-100 p-0.5 rounded w-3/4 mb-1 h-1"></div>
-                        </div>
-                    </div>
-                    ${feriadoLabel}
-                </div>
-            </div>`;
+        // Banner y Badge
+        const banner = dayEvents.find(e => e.display_mode === 'banner');
+        const badge = dayEvents.find(e => e.display_mode === 'badge');
+        // Eventos normales
+        const eventCards = dayEvents.filter(e => e.display_mode !== 'badge' && e.display_mode !== 'banner' && e.display_mode !== 'background' && e.type_slug !== 'holiday');
+        const cardsHtml = eventCards.map(ev => {
+            const mode = ev.display_mode || 'block';
+            const color = ev.color || '#4F46E5';
+            const icon = ev.icon || 'calendar-blank';
+            const name = ev.title || 'Tipo';
+            return window.getCardHTML ? window.getCardHTML(mode, color, icon, name, {...ev, start: day.iso}) : '';
+        }).join('');
+
+        // Estructura idéntica a la preview: banner arriba, luego badge, luego cards
+        if (banner || badge) {
+            let contentHtml = `<div class='w-full h-full flex flex-col bg-white relative z-10'>`;
+            if (banner) {
+                contentHtml += `<div class=\"h-4 w-full flex items-center justify-between px-1 shadow-sm z-10\" style=\"background-color:${banner.color||'#4F46E5'}\"><span class=\"text-[6px] font-bold text-white uppercase tracking-wider flex items-center gap-1\"><i class=\"ph-bold ph-${banner.icon||'calendar-blank'}\"></i> ${banner.title||'Tipo'}</span></div>`;
+            }
+            contentHtml += `<div class=\"p-2 relative flex-1 flex flex-col\">`;
+            // Header (día y número, opaco si hay banner)
+            contentHtml += `<div class=\"flex justify-between items-start${banner ? ' opacity-30 mb-1' : ' mb-1'}\"><span class=\"text-[8px] font-black\">${day.dow}</span><span class=\"text-sm font-black\">${day.num}</span></div>`;
+            if (badge) {
+                contentHtml += `<div class=\"w-fit max-w-full py-0.5 px-2 rounded-full mb-1 text-[7px] font-bold text-white flex items-center gap-1 shadow-sm\" style=\"background-color:${badge.color||'#4F46E5'};\"><i class=\"ph-fill ph-${badge.icon||'calendar-blank'}\"></i> ${badge.title||'Tipo'}</div>`;
+            }
+            contentHtml += `<div class='flex flex-col gap-0.5 flex-shrink-0'>${cardsHtml}</div>`;
+            // Línea decorativa fuera del bloque de eventos, pegada abajo
+            contentHtml += `<div class=\"w-3/4 h-1 bg-gray-100 rounded opacity-50 mt-auto\"></div>`;
+            contentHtml += `</div>`;
+            contentHtml += `${feriadoLabel}`;
+            contentHtml += `</div>`;
+            return `<div class='${contClass} relative' style='${feriadoBg}'>${feriadoOverlay}${contentHtml}</div>`;
         }
-        if (badge) {
-            return `<div class='${contClass} relative' style='${feriadoBg}'>
-                ${feriadoOverlay}
-                <div class="w-full h-full p-2 flex flex-col bg-white relative z-10">
-                    <div class="flex justify-between items-start mb-1">
-                        <span class="text-[8px] font-bold text-gray-400 uppercase">${day.dow}</span>
-                        <span class="text-sm font-black text-gray-800">${day.num}</span>
-                    </div>
-                    <div class="w-fit max-w-full py-0.5 px-2 rounded-full mb-1 text-[7px] font-bold text-white flex items-center gap-1 shadow-sm" style="background-color:${badge.color||'#4F46E5'}">
-                        <i class="ph-fill ph-${badge.icon||'calendar-blank'}"></i> ${badge.title||'Tipo'}
-                    </div>
-                    <div class='flex flex-col gap-0.5'>
-                        ${cardsHtml}
-                        <div class="w-full h-2 rounded bg-gray-50 border border-gray-100 mt-auto"></div>
-                    </div>
-                    ${feriadoLabel}
-                </div>
-            </div>`;
-        }
-        // ...render normal...
+
+        // Si no hay banner ni badge, render normal o feriado
+        let headerHtml = `<span style=\"font-size:8px;font-weight:700;color:#9ca3af;text-transform:uppercase;line-height:1;\">${day.dow}</span><span style=\"font-size:15px;font-weight:900;color:#1e293b;line-height:1;\">${day.num}</span>`;
         return `<div class='${contClass} relative' style='${feriadoBg}'>
             ${feriadoOverlay}
             <div class='w-full h-full p-2 flex flex-col justify-between bg-white/80 relative z-10'>
-                <div class="flex justify-between items-start mb-1" style="margin-bottom:4px;align-items:flex-start;">${headerHtml}</div>
+                <div class=\"flex justify-between items-start mb-1\" style=\"margin-bottom:4px;align-items:flex-start;\">${headerHtml}</div>
                 <div class='flex flex-col gap-0.5'>
                     ${cardsHtml}
-                    <div class='w-3/4 h-1 bg-gray-100 rounded opacity-50'></div>
+                    <div class=\"w-3/4 h-1 bg-gray-100 rounded opacity-50\"></div>
                 </div>
                 ${feriadoLabel}
             </div>
