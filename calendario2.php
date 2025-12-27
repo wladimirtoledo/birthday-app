@@ -200,38 +200,62 @@ requireAuth();
         }
 
         // Agrupar eventos por tipo
-        const banner = dayEvents.find(e => e.display_mode === 'banner');
-        const badge = dayEvents.find(e => e.display_mode === 'badge');
+        const banners = dayEvents.filter(e => e.display_mode === 'banner');
+        const badges = dayEvents.filter(e => e.display_mode === 'badge');
         const normalEvents = dayEvents.filter(e => !['badge','banner','background'].includes(e.display_mode) && e.type_slug !== 'holiday');
 
-        // --- ZONA ARRIBA: Banner, header, badge ---
+        // --- ZONA ARRIBA: Banners, header, badges ---
         let headerZone = '';
-        if (banner) {
-            const bannerData = {...banner, start: day.iso};
-            const bannerJson = encodeURIComponent(JSON.stringify(bannerData));
-            headerZone += `<div class=\"h-4 w-full flex items-center justify-between px-1 shadow-sm z-10 cursor-pointer\" style=\"background-color:${banner.color||'#4F46E5'}\" onclick=\"window.showEventDetail && window.showEventDetail(JSON.parse(decodeURIComponent('${bannerJson}')))\"><span class=\"text-[6px] font-bold text-white uppercase tracking-wider flex items-center gap-1\"><i class=\"ph-bold ph-${banner.icon||'calendar-blank'}\"></i> ${banner.title||'Tipo'}</span></div>`;
+        if (banners.length > 0) {
+            banners.forEach(banner => {
+                const bannerData = {...banner, start: day.iso};
+                const bannerJson = encodeURIComponent(JSON.stringify(bannerData));
+                headerZone += `<div class=\"h-4 w-full flex items-center justify-between px-1 shadow-sm z-10 cursor-pointer\" style=\"background-color:${banner.color||'#4F46E5'}\" onclick=\"window.showEventDetail && window.showEventDetail(JSON.parse(decodeURIComponent('${bannerJson}')))\"><span class=\"text-[6px] font-bold text-white uppercase tracking-wider flex items-center gap-1\"><i class=\"ph-bold ph-${banner.icon||'calendar-blank'}\"></i> ${banner.title||'Tipo'}</span></div>`;
+            });
         }
         headerZone += `<div class=\"flex justify-between items-start mb-1\" style=\"min-height:30px; background:${feriado ? 'transparent' : '#fff'};\"><span class=\"text-[10px] font-bold ${feriado ? 'opacity-60' : ''} ${feriado ? '' : 'text-gray-400'} uppercase\" style=\"color:${feriado ? (feriado.color || '#EF4444') : ''}\">${day.dow}</span><span class=\"text-lg font-black ${feriado ? '' : 'text-gray-800'}\" style=\"color:${feriado ? (feriado.color || '#EF4444') : ''}\">${day.num}</span></div>`;
-        if (badge) {
-            const badgeData = {...badge, start: day.iso};
-            const badgeJson = encodeURIComponent(JSON.stringify(badgeData));
+        if (badges.length > 0) {
             headerZone = headerZone.replace('mb-1','mb-0');
-            headerZone += `<div class=\"w-fit max-w-full py-0.5 px-2 rounded-full mb-0 text-[7px] font-bold text-white flex items-center gap-1 shadow-sm cursor-pointer\" style=\"background-color:${badge.color||'#4F46E5'}; margin-top:0; margin-bottom:0;\" onclick=\"window.showEventDetail && window.showEventDetail(JSON.parse(decodeURIComponent('${badgeJson}')))\"><i class=\"ph-fill ph-${badge.icon||'calendar-blank'}\"></i> ${badge.title||'Tipo'}</div>`;
+            badges.forEach(badge => {
+                const badgeData = {...badge, start: day.iso};
+                const badgeJson = encodeURIComponent(JSON.stringify(badgeData));
+                headerZone += `<div class=\"w-fit max-w-full py-0.5 px-2 rounded-full mb-0 text-[7px] font-bold text-white flex items-center gap-1 shadow-sm cursor-pointer\" style=\"background-color:${badge.color||'#4F46E5'}; margin-top:0; margin-bottom:0;\" onclick=\"window.showEventDetail && window.showEventDetail(JSON.parse(decodeURIComponent('${badgeJson}')))\"><i class=\"ph-fill ph-${badge.icon||'calendar-blank'}\"></i> ${badge.title||'Tipo'}</div>`;
+            });
         }
 
         // --- ZONA CENTRO: eventos normales ---
         let centerZone = '';
         if (normalEvents.length > 0) {
-            centerZone = `<div class=\"flex flex-col gap-0.5 flex-1 mt-1\">${normalEvents.map(ev => {
+            // Si hay al menos un evento tipo gradient, photo, transparent o block, mostrarlo sin div blanco ni event-card-preview
+            const hasGradient = normalEvents.some(ev => (ev.display_mode || '').toLowerCase() === 'gradient');
+            const hasPhoto = normalEvents.some(ev => (ev.display_mode || '').toLowerCase() === 'photo');
+            const hasTransparent = normalEvents.some(ev => (ev.display_mode || '').toLowerCase() === 'transparent');
+            const hasBlock = normalEvents.some(ev => (ev.display_mode || '').toLowerCase() === 'block');
+            if ((hasGradient || hasPhoto || hasTransparent || hasBlock) && normalEvents.length === 1) {
+                const ev = normalEvents[0];
                 const mode = ev.display_mode || 'block';
                 const color = ev.color || '#4F46E5';
                 const icon = ev.icon || 'calendar-blank';
                 const name = ev.title || 'Tipo';
                 const evData = {...ev, start: day.iso};
-                // Serializar datos para el onclick
                 const evJson = encodeURIComponent(JSON.stringify(evData));
-                return `<div class=\"event-card-preview cursor-pointer\" onclick=\"window.showEventDetail && window.showEventDetail(JSON.parse(decodeURIComponent('${evJson}')))\">${window.getCardHTML ? window.getCardHTML(mode, color, icon, name, evData) : ''}</div>`;
-            }).join('')}</div>`;
+                // Renderizar solo el gradiente, photo, transparent o block, sin wrapper
+                centerZone = `<div class=\"flex-1 mt-1 cursor-pointer\" onclick=\"window.showEventDetail && window.showEventDetail(JSON.parse(decodeURIComponent('${evJson}')))\">${window.getCardHTML ? window.getCardHTML(mode, color, icon, name, evData) : ''}</div>`;
+            } else {
+                centerZone = `<div class=\"flex flex-col gap-0.5 flex-1 mt-1\">${normalEvents.map(ev => {
+                    const mode = ev.display_mode || 'block';
+                    const color = ev.color || '#4F46E5';
+                    const icon = ev.icon || 'calendar-blank';
+                    const name = ev.title || 'Tipo';
+                    const evData = {...ev, start: day.iso};
+                    const evJson = encodeURIComponent(JSON.stringify(evData));
+                    // Si es gradient, photo, transparent o block, no usar event-card-preview ni fondo blanco
+                    if (['gradient','photo','transparent','block'].includes((mode || '').toLowerCase())) {
+                        return `<div class=\"flex-1 mt-1 cursor-pointer\" onclick=\"window.showEventDetail && window.showEventDetail(JSON.parse(decodeURIComponent('${evJson}')))\">${window.getCardHTML ? window.getCardHTML(mode, color, icon, name, evData) : ''}</div>`;
+                    }
+                    return `<div class=\"event-card-preview cursor-pointer\" onclick=\"window.showEventDetail && window.showEventDetail(JSON.parse(decodeURIComponent('${evJson}')))\">${window.getCardHTML ? window.getCardHTML(mode, color, icon, name, evData) : ''}</div>`;
+                }).join('')}</div>`;
+            }
         } else {
             centerZone = '<div class=\"flex-1\"></div>';
         }
@@ -289,7 +313,11 @@ requireAuth();
             </div>
             <div class='aspect-[7/4] grid grid-cols-7 grid-rows-4 gap-px text-[16px] text-gray-700 mx-auto p-0'>
             ${days.map((d,i)=>{
-                const dayEvents = events.filter(e => (e.event_date||'').slice(0,10) === d.iso);
+                const dayEvents = events.filter(e => {
+                    // Asegurar que la comparación sea solo por fecha (YYYY-MM-DD)
+                    const evDate = (e.event_date||'').slice(0,10);
+                    return evDate === d.iso;
+                });
                 return renderCellPreview(d, dayEvents);
             }).join('')}
             </div>
