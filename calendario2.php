@@ -226,12 +226,13 @@ requireAuth();
         // --- ZONA CENTRO: eventos normales ---
         let centerZone = '';
         if (normalEvents.length > 0) {
-            // Si hay al menos un evento tipo gradient, photo, transparent o block, mostrarlo sin div blanco ni event-card-preview
+            // Si hay al menos un evento tipo gradient, photo, transparent, block o detailed, mostrarlo sin div blanco ni event-card-preview
             const hasGradient = normalEvents.some(ev => (ev.display_mode || '').toLowerCase() === 'gradient');
             const hasPhoto = normalEvents.some(ev => (ev.display_mode || '').toLowerCase() === 'photo');
             const hasTransparent = normalEvents.some(ev => (ev.display_mode || '').toLowerCase() === 'transparent');
             const hasBlock = normalEvents.some(ev => (ev.display_mode || '').toLowerCase() === 'block');
-            if ((hasGradient || hasPhoto || hasTransparent || hasBlock) && normalEvents.length === 1) {
+            const hasDetailed = normalEvents.some(ev => (ev.display_mode || '').toLowerCase() === 'detailed');
+            if ((hasGradient || hasPhoto || hasTransparent || hasBlock || hasDetailed) && normalEvents.length === 1) {
                 const ev = normalEvents[0];
                 const mode = ev.display_mode || 'block';
                 const color = ev.color || '#4F46E5';
@@ -239,7 +240,7 @@ requireAuth();
                 const name = ev.title || 'Tipo';
                 const evData = {...ev, start: day.iso};
                 const evJson = encodeURIComponent(JSON.stringify(evData));
-                // Renderizar solo el gradiente, photo, transparent o block, sin wrapper
+                // Renderizar solo el gradiente, photo, transparent, block o detailed, sin wrapper
                 centerZone = `<div class=\"flex-1 mt-1 cursor-pointer\" onclick=\"window.showEventDetail && window.showEventDetail(JSON.parse(decodeURIComponent('${evJson}')))\">${window.getCardHTML ? window.getCardHTML(mode, color, icon, name, evData) : ''}</div>`;
             } else {
                 centerZone = `<div class=\"flex flex-col gap-0.5 flex-1 mt-1\">${normalEvents.map(ev => {
@@ -249,8 +250,8 @@ requireAuth();
                     const name = ev.title || 'Tipo';
                     const evData = {...ev, start: day.iso};
                     const evJson = encodeURIComponent(JSON.stringify(evData));
-                    // Si es gradient, photo, transparent o block, no usar event-card-preview ni fondo blanco
-                    if (['gradient','photo','transparent','block'].includes((mode || '').toLowerCase())) {
+                    // Si es gradient, photo, transparent, block o detailed, no usar event-card-preview ni fondo blanco
+                    if (['gradient','photo','transparent','block','detailed'].includes((mode || '').toLowerCase())) {
                         return `<div class=\"flex-1 mt-1 cursor-pointer\" onclick=\"window.showEventDetail && window.showEventDetail(JSON.parse(decodeURIComponent('${evJson}')))\">${window.getCardHTML ? window.getCardHTML(mode, color, icon, name, evData) : ''}</div>`;
                     }
                     return `<div class=\"event-card-preview cursor-pointer\" onclick=\"window.showEventDetail && window.showEventDetail(JSON.parse(decodeURIComponent('${evJson}')))\">${window.getCardHTML ? window.getCardHTML(mode, color, icon, name, evData) : ''}</div>`;
