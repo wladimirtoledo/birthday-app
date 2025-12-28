@@ -22,11 +22,15 @@ requireAuth();
                 border-radius: 0.5rem;
                 box-shadow: 0 1px 4px 0 rgba(0,0,0,0.04);
                 background: #fff;
-                margin-bottom: 2px;
-                padding: 2px 4px;
+                margin-bottom: 0;
+                padding: 1px 4px 1px 4px;
                 min-width: 0;
                 position: relative;
                 z-index: 1;
+                overflow: visible;
+            }
+            .event-card-preview:hover, .event-card-preview:focus {
+                z-index: 50;
             }
     </style>
 </head>
@@ -188,14 +192,14 @@ requireAuth();
         // --- Agrupación y estructura preview ---
         const special = dayEvents.find(e => e.display_mode === 'background' || e.display_mode === 'badge' || e.display_mode === 'banner' || e.type_slug === 'holiday');
         const feriado = dayEvents.find(e => e.display_mode === 'background' || e.type_slug === 'holiday');
-        let contClass = 'relative flex flex-col overflow-hidden z-10 transition-all duration-300 min-h-[140px] min-w-[0] aspect-square';
+        let contClass = 'relative flex flex-col overflow-visible z-10 transition-all duration-300 min-h-0 min-w-0 h-full border border-gray-200';
         let style = '';
         if (feriado) {
             const color = feriado.color || '#EF4444';
             contClass += ' ring-2 ring-red-200';
             style = `background-color: ${window.hexToRgba ? window.hexToRgba(color, 0.15) : color};`;
         } else {
-            contClass += ' bg-white shadow-2xl ring-4 ring-indigo-50/50 hover:ring-2 hover:ring-indigo-100';
+            contClass += ' bg-white shadow-2xl ring-2 ring-indigo-50/50 hover:ring-2 hover:ring-indigo-100';
             style = '';
         }
 
@@ -216,10 +220,15 @@ requireAuth();
         headerZone += `<div class=\"flex justify-between items-start mb-1\" style=\"min-height:30px; background:${feriado ? 'transparent' : '#fff'};\"><span class=\"text-[10px] font-bold ${feriado ? 'opacity-60' : ''} ${feriado ? '' : 'text-gray-400'} uppercase\" style=\"color:${feriado ? (feriado.color || '#EF4444') : ''}\">${day.dow}</span><span class=\"text-lg font-black ${feriado ? '' : 'text-gray-800'}\" style=\"color:${feriado ? (feriado.color || '#EF4444') : ''}\">${day.num}</span></div>`;
         if (badges.length > 0) {
             headerZone = headerZone.replace('mb-1','mb-0');
-            badges.forEach(badge => {
+            badges.forEach((badge, idx) => {
                 const badgeData = {...badge, start: day.iso};
                 const badgeJson = encodeURIComponent(JSON.stringify(badgeData));
-                headerZone += `<div class=\"w-fit max-w-full py-0.5 px-2 rounded-full mb-0 text-[7px] font-bold text-white flex items-center gap-1 shadow-sm cursor-pointer\" style=\"background-color:${badge.color||'#4F46E5'}; margin-top:0; margin-bottom:0;\" onclick=\"window.showEventDetail && window.showEventDetail(JSON.parse(decodeURIComponent('${badgeJson}')))\"><i class=\"ph-fill ph-${badge.icon||'calendar-blank'}\"></i> ${badge.title||'Tipo'}</div>`;
+                // Si es el último badge y hay eventos normales, agrega margen inferior
+                let extraMargin = '';
+                if (idx === badges.length - 1 && normalEvents.length > 0) {
+                    extraMargin = 'margin-bottom:4px;';
+                }
+                headerZone += `<div class=\"w-fit max-w-full py-0.5 px-2 rounded-full text-[7px] font-bold text-white flex items-center gap-1 shadow-sm cursor-pointer\" style=\"background-color:${badge.color||'#4F46E5'}; margin-top:${idx>0?'2px':'0'}; margin-bottom:0;${extraMargin}\" onclick=\"window.showEventDetail && window.showEventDetail(JSON.parse(decodeURIComponent('${badgeJson}')))\"><i class=\"ph-fill ph-${badge.icon||'calendar-blank'}\"></i> ${badge.title||'Tipo'}</div>`;
             });
         }
 
@@ -240,21 +249,21 @@ requireAuth();
                 const name = ev.title || 'Tipo';
                 const evData = {...ev, start: day.iso};
                 const evJson = encodeURIComponent(JSON.stringify(evData));
-                // Renderizar solo el gradiente, photo, transparent, block o detailed, sin wrapper
-                centerZone = `<div class=\"flex-1 mt-1 cursor-pointer\" onclick=\"window.showEventDetail && window.showEventDetail(JSON.parse(decodeURIComponent('${evJson}')))\">${window.getCardHTML ? window.getCardHTML(mode, color, icon, name, evData) : ''}</div>`;
+                // Contenedor base para normalizar estilos
+                centerZone = `<div class=\"w-full text-xs min-h-0 p-0 overflow-visible\" style=\"padding:0;margin:0;line-height:1.1;max-height:40px;overflow:visible;\"><div class=\"cursor-pointer\" style=\"padding:0;margin:0;line-height:1.1;\" onclick=\"window.showEventDetail && window.showEventDetail(JSON.parse(decodeURIComponent('${evJson}')))\">${window.getCardHTML ? window.getCardHTML(mode, color, icon, name, evData) : ''}</div></div>`;
             } else {
-                centerZone = `<div class=\"flex flex-col gap-0.5 flex-1 mt-1\">${normalEvents.map(ev => {
+                centerZone = `<div class=\"flex flex-col gap-0\">${normalEvents.map((ev, idx) => {
                     const mode = ev.display_mode || 'block';
                     const color = ev.color || '#4F46E5';
                     const icon = ev.icon || 'calendar-blank';
                     const name = ev.title || 'Tipo';
                     const evData = {...ev, start: day.iso};
                     const evJson = encodeURIComponent(JSON.stringify(evData));
-                    // Si es gradient, photo, transparent, block o detailed, no usar event-card-preview ni fondo blanco
+                    // Si es gradient, photo, transparent, block o detailed, usar contenedor base
                     if (['gradient','photo','transparent','block','detailed'].includes((mode || '').toLowerCase())) {
-                        return `<div class=\"flex-1 mt-1 cursor-pointer\" onclick=\"window.showEventDetail && window.showEventDetail(JSON.parse(decodeURIComponent('${evJson}')))\">${window.getCardHTML ? window.getCardHTML(mode, color, icon, name, evData) : ''}</div>`;
+                        return `<div class=\"w-full text-xs min-h-0 p-0 overflow-visible\" style=\"padding:0;margin:0;line-height:1.1;max-height:40px;overflow:visible;\"><div class=\"cursor-pointer\" style=\"padding:0;margin:0;line-height:1.1;margin-bottom:0;\" onclick=\"window.showEventDetail && window.showEventDetail(JSON.parse(decodeURIComponent('${evJson}')))\">${window.getCardHTML ? window.getCardHTML(mode, color, icon, name, evData) : ''}</div></div>`;
                     }
-                    return `<div class=\"event-card-preview cursor-pointer\" onclick=\"window.showEventDetail && window.showEventDetail(JSON.parse(decodeURIComponent('${evJson}')))\">${window.getCardHTML ? window.getCardHTML(mode, color, icon, name, evData) : ''}</div>`;
+                    return `<div class=\"event-card-preview cursor-pointer\" style=\"margin-bottom:0;\" onclick=\"window.showEventDetail && window.showEventDetail(JSON.parse(decodeURIComponent('${evJson}')))\">${window.getCardHTML ? window.getCardHTML(mode, color, icon, name, evData) : ''}</div>`;
                 }).join('')}</div>`;
             }
         } else {
@@ -276,9 +285,10 @@ requireAuth();
             label = `<div class=\"absolute bottom-1 right-1 text-[6px] font-bold uppercase opacity-80 pointer-events-none\" style=\"color: ${color}\">${name}</div>`;
         }
         return `<div class='${contClass}' style='${style}'>
-            <div class='w-full h-full flex flex-col ${feriado ? 'bg-transparent p-2' : 'bg-white p-2'} relative z-10'>
+            <div class='w-full h-full flex flex-col ${feriado ? 'bg-transparent p-0.5' : 'bg-white p-0.5'} relative z-10 min-h-0 flex-1'>
                 ${headerZone}
                 ${centerZone}
+                <div class='flex-1'></div>
                 ${bottomZone}
                 ${label}
             </div>
@@ -308,11 +318,11 @@ requireAuth();
         const container = document.getElementById('calendarPreview');
         const weekDays = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
         container.innerHTML = `
-        <div class='w-full max-w-5xl bg-white shadow-lg overflow-hidden border border-gray-200'>
+        <div class='w-full max-w-5xl bg-white shadow-lg overflow-hidden border border-gray-200 h-full flex flex-col max-h-[900px]' style='box-sizing:border-box; max-height:900px;'>
             <div class='grid grid-cols-7 bg-gray-50 border-b border-gray-200'>
                 ${weekDays.map(day => `<div class='text-center py-2 font-bold text-gray-500 text-[15px] uppercase'>${day}</div>`).join('')}
             </div>
-            <div class='aspect-[7/4] grid grid-cols-7 grid-rows-4 gap-px text-[16px] text-gray-700 mx-auto p-0'>
+            <div class='grid grid-cols-7 grid-rows-4 gap-px text-[16px] text-gray-700 flex-1 min-h-0 mx-auto p-0 h-full'>
             ${days.map((d,i)=>{
                 const dayEvents = events.filter(e => {
                     // Asegurar que la comparación sea solo por fecha (YYYY-MM-DD)
