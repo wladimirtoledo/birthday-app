@@ -285,7 +285,7 @@ requireAuth();
             label = `<div class=\"absolute bottom-1 right-1 text-[6px] font-bold uppercase opacity-80 pointer-events-none\" style=\"color: ${color}\">${name}</div>`;
         }
         return `<div class='${contClass}' style='${style}'>
-            <div class='w-full h-full flex flex-col ${feriado ? 'bg-transparent p-0.5' : 'bg-white p-0.5'} relative z-10 min-h-0 flex-1'>
+            <div class='w-full h-full flex flex-col ${feriado ? 'bg-transparent p-1' : 'bg-white p-1'} relative z-10 min-h-0 flex-1'>
                 ${headerZone}
                 ${centerZone}
                 <div class='flex-1'></div>
