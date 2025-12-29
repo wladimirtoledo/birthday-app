@@ -196,7 +196,7 @@ if ($action === 'get_all' && $method === 'GET') {
     usort($finalEvents, function($a, $b) { return strcmp($a['start'], $b['start']); });
 
         // DEBUG: Mostrar los datos de los eventos antes de enviar
-        file_put_contents(__DIR__.'/debug_events.log', print_r($finalEvents, true));
+        // file_put_contents(__DIR__.'/debug_events.log', print_r($finalEvents, true));
     
     sendJson($context==='calendar' ? $finalEvents : ['data'=>$finalEvents, 'total'=>$total]);
 }

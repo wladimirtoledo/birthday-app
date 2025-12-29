@@ -17,21 +17,22 @@ requireAuth();
         .fancy-scroll::-webkit-scrollbar-track { background: transparent; }
         .fancy-scroll::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 20px; border: 2px solid transparent; background-clip: content-box; }
         .fancy-scroll::-webkit-scrollbar-thumb:hover { background-color: #94a3b8; }
-            /* Encapsulado de tarjetas de evento para evitar contaminación de estilos */
-            .event-card-preview {
-                border-radius: 0.5rem;
-                box-shadow: 0 1px 4px 0 rgba(0,0,0,0.04);
-                background: #fff;
-                margin-bottom: 0;
-                padding: 1px 4px 1px 4px;
-                min-width: 0;
-                position: relative;
-                z-index: 1;
-                overflow: visible;
-            }
-            .event-card-preview:hover, .event-card-preview:focus {
-                z-index: 50;
-            }
+        /* Encapsulado de tarjetas de evento para evitar contaminación de estilos */
+        .event-card-preview {
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 4px 0 rgba(0,0,0,0.04);
+            background: #fff;
+            margin-bottom: 0;
+            padding: 6px 8px 6px 8px;
+            min-width: 0;
+            position: relative;
+            z-index: 1;
+            overflow: visible;
+            font-size: 1.1em;
+        }
+        .event-card-preview:hover, .event-card-preview:focus {
+            z-index: 50;
+        }
     </style>
 </head>
 <body class="bg-gray-100 font-sans min-h-screen flex flex-col">
@@ -40,10 +41,18 @@ requireAuth();
     </div>
     <main class="flex-1 max-w-5xl mx-auto w-full py-2 px-0 min-h-0 flex flex-col">
         <!-- Modal Detalle Evento -->
-        <div id="eventDetailModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/30 hidden">
+        <div id="eventDetailModal" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/30 hidden">
             <div class="bg-white rounded-xl shadow-2xl max-w-xs w-full p-5 relative">
                 <button id="closeEventDetail" class="absolute top-2 right-2 text-gray-400 hover:text-red-500 text-xl">&times;</button>
                 <div id="eventDetailContent"></div>
+            </div>
+        </div>
+        <!-- Modal Día Completo -->
+        <div id="dayEventsModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 hidden">
+            <div class="bg-white rounded-2xl shadow-2xl w-[96vw] max-w-sm h-[85vh] flex flex-col p-6 relative mx-auto" style="left:0;right:0;top:0;bottom:0;">
+                <button id="closeDayEventsModal" class="absolute top-3 right-4 text-gray-400 hover:text-red-500 text-2xl">&times;</button>
+                <div id="dayEventsModalTitle" class="text-2xl font-bold text-gray-800 mb-2 text-center"></div>
+                <div id="dayEventsModalContent" class="modal-day-grid flex-1 overflow-y-auto grid grid-cols-1 gap-4 py-2 fancy-scroll w-full mx-auto justify-items-center" style="width:100%;max-width:100%;min-width:0;"></div>
             </div>
         </div>
         <h1 class="text-2xl font-bold text-gray-900 mb-4 flex items-center"><i class="ph ph-calendar-blank mr-3 text-indigo-600 bg-indigo-50 p-2 rounded-lg"></i> Calendario Preview</h1>
@@ -190,6 +199,11 @@ requireAuth();
 
     // Clon literal de renderUnifiedPreview de event_types.php para cada celda
     function renderCellPreview(day, dayEvents) {
+        // Solo hacer la celda clickeable fuera de los eventos y no sobre los eventos
+        let openModal = '';
+        if (dayEvents.length > 0) {
+            openModal = `style=\"cursor:pointer;\"`;
+        }
         // --- Agrupación y estructura preview ---
         const special = dayEvents.find(e => e.display_mode === 'background' || e.display_mode === 'badge' || e.display_mode === 'banner' || e.type_slug === 'holiday');
         const feriado = dayEvents.find(e => e.display_mode === 'background' || e.type_slug === 'holiday');
@@ -209,41 +223,66 @@ requireAuth();
         const badges = dayEvents.filter(e => e.display_mode === 'badge');
         const normalEvents = dayEvents.filter(e => !['badge','banner','background'].includes(e.display_mode) && e.type_slug !== 'holiday');
 
+        // Agrupación y ver más si hay más de 6 eventos
+        let showVerMas = false;
+        let verMasCount = 0;
+        let bannersLimited = banners;
+        let badgesLimited = badges;
+        let normalEventsLimited = normalEvents;
+        // Si estamos en el modal de detalle (zoom), no agrupar ni limitar eventos
+        if (window.__renderAllEvents) {
+            // Mostrar todos los eventos
+        } else {
+            const totalEvents = banners.length + badges.length + normalEvents.length;
+            if (totalEvents > 6) {
+                // Mostrar solo los primeros 6 eventos (prioridad: banners, badges, normales)
+                let shown = 0;
+                bannersLimited = [];
+                badgesLimited = [];
+                normalEventsLimited = [];
+                for (let i = 0; i < banners.length && shown < 6; i++, shown++) bannersLimited.push(banners[i]);
+                for (let i = 0; i < badges.length && shown < 6; i++, shown++) badgesLimited.push(badges[i]);
+                for (let i = 0; i < normalEvents.length && shown < 6; i++, shown++) normalEventsLimited.push(normalEvents[i]);
+                showVerMas = true;
+                verMasCount = totalEvents - 6;
+            }
+        }
+
         // --- ZONA ARRIBA: Banners, header, badges ---
         let headerZone = '';
-        if (banners.length > 0) {
-            banners.forEach(banner => {
+        if (bannersLimited.length > 0) {
+            bannersLimited.forEach(banner => {
                 const bannerData = {...banner, start: day.iso};
                 const bannerJson = encodeURIComponent(JSON.stringify(bannerData));
-                headerZone += `<div class=\"h-4 w-full flex items-center justify-between px-1 shadow-sm z-10 cursor-pointer\" style=\"background-color:${banner.color||'#4F46E5'}\" onclick=\"window.showEventDetail && window.showEventDetail(JSON.parse(decodeURIComponent('${bannerJson}')))\"><span class=\"text-[6px] font-bold text-white uppercase tracking-wider flex items-center gap-1\"><i class=\"ph-bold ph-${banner.icon||'calendar-blank'}\"></i> ${banner.title||'Tipo'}</span></div>`;
+                headerZone += `<div class=\"h-4 w-full flex items-center justify-between px-1 shadow-sm z-10 cursor-pointer\" style=\"background-color:${banner.color||'#4F46E5'}\" onclick=\"window.showEventDetail && window.showEventDetail(JSON.parse(decodeURIComponent('${bannerJson}')))"><span class=\"text-[6px] font-bold text-white uppercase tracking-wider flex items-center gap-1\"><i class=\"ph-bold ph-${banner.icon||'calendar-blank'}\"></i> ${banner.title||'Tipo'}</span></div>`;
             });
         }
         headerZone += `<div class=\"flex justify-between items-start mb-1\" style=\"min-height:30px; background:${feriado ? 'transparent' : '#fff'};\"><span class=\"text-[10px] font-bold ${feriado ? 'opacity-60' : ''} ${feriado ? '' : 'text-gray-400'} uppercase\" style=\"color:${feriado ? (feriado.color || '#EF4444') : ''}\">${day.dow}</span><span class=\"text-lg font-black ${feriado ? '' : 'text-gray-800'}\" style=\"color:${feriado ? (feriado.color || '#EF4444') : ''}\">${day.num}</span></div>`;
-        if (badges.length > 0) {
+        if (badgesLimited.length > 0) {
             headerZone = headerZone.replace('mb-1','mb-0');
-            badges.forEach((badge, idx) => {
+            badgesLimited.forEach((badge, idx) => {
                 const badgeData = {...badge, start: day.iso};
                 const badgeJson = encodeURIComponent(JSON.stringify(badgeData));
                 // Si es el último badge y hay eventos normales, agrega margen inferior
                 let extraMargin = '';
-                if (idx === badges.length - 1 && normalEvents.length > 0) {
+                if (idx === badgesLimited.length - 1 && normalEventsLimited.length > 0) {
                     extraMargin = 'margin-bottom:4px;';
                 }
-                headerZone += `<div class=\"w-fit max-w-full py-0.5 px-2 rounded-full text-[7px] font-bold text-white flex items-center gap-1 shadow-sm cursor-pointer\" style=\"background-color:${badge.color||'#4F46E5'}; margin-top:${idx>0?'2px':'0'}; margin-bottom:0;${extraMargin}\" onclick=\"window.showEventDetail && window.showEventDetail(JSON.parse(decodeURIComponent('${badgeJson}')))\"><i class=\"ph-fill ph-${badge.icon||'calendar-blank'}\"></i> ${badge.title||'Tipo'}</div>`;
+                headerZone += `<div class=\"w-fit max-w-full py-0.5 px-2 rounded-full text-[7px] font-bold text-white flex items-center gap-1 shadow-sm cursor-pointer\" style=\"background-color:${badge.color||'#4F46E5'}; margin-top:${idx>0?'2px':'0'}; margin-bottom:0;${extraMargin}\" onclick=\"window.showEventDetail && window.showEventDetail(JSON.parse(decodeURIComponent('${badgeJson}')))"><i class=\"ph-fill ph-${badge.icon||'calendar-blank'}\"></i> ${badge.title||'Tipo'}</div>`;
             });
         }
 
         // --- ZONA CENTRO: eventos normales ---
         let centerZone = '';
-        if (normalEvents.length > 0) {
+        if (normalEventsLimited.length > 0) {
             // Si hay al menos un evento tipo gradient, photo, transparent, block o detailed, mostrarlo sin div blanco ni event-card-preview
-            const hasGradient = normalEvents.some(ev => (ev.display_mode || '').toLowerCase() === 'gradient');
-            const hasPhoto = normalEvents.some(ev => (ev.display_mode || '').toLowerCase() === 'photo');
-            const hasTransparent = normalEvents.some(ev => (ev.display_mode || '').toLowerCase() === 'transparent');
-            const hasBlock = normalEvents.some(ev => (ev.display_mode || '').toLowerCase() === 'block');
-            const hasDetailed = normalEvents.some(ev => (ev.display_mode || '').toLowerCase() === 'detailed');
-            if ((hasGradient || hasPhoto || hasTransparent || hasBlock || hasDetailed) && normalEvents.length === 1) {
-                const ev = normalEvents[0];
+            const hasGradient = normalEventsLimited.some(ev => (ev.display_mode || '').toLowerCase() === 'gradient');
+            const hasPhoto = normalEventsLimited.some(ev => (ev.display_mode || '').toLowerCase() === 'photo');
+            const hasTransparent = normalEventsLimited.some(ev => (ev.display_mode || '').toLowerCase() === 'transparent');
+            const hasBlock = normalEventsLimited.some(ev => (ev.display_mode || '').toLowerCase() === 'block');
+            const hasDetailed = normalEventsLimited.some(ev => (ev.display_mode || '').toLowerCase() === 'detailed');
+            if ((hasGradient || hasPhoto || hasTransparent || hasBlock || hasDetailed) && normalEventsLimited.length === 1) {
+                const ev = normalEventsLimited[0];
                 const mode = ev.display_mode || 'block';
                 const color = ev.color || '#4F46E5';
                 const icon = ev.icon || 'calendar-blank';
@@ -251,9 +290,9 @@ requireAuth();
                 const evData = {...ev, start: day.iso};
                 const evJson = encodeURIComponent(JSON.stringify(evData));
                 // Contenedor base para normalizar estilos
-                centerZone = `<div class=\"w-full text-xs min-h-0 p-0 overflow-visible\" style=\"padding:0;margin:0;line-height:1.1;max-height:40px;overflow:visible;\"><div class=\"cursor-pointer\" style=\"padding:0;margin:0;line-height:1.1;\" onclick=\"window.showEventDetail && window.showEventDetail(JSON.parse(decodeURIComponent('${evJson}')))\">${window.getCardHTML ? window.getCardHTML(mode, color, icon, name, evData) : ''}</div></div>`;
+                centerZone = `<div class=\"w-full text-base min-h-0 p-0 overflow-visible\" style=\"padding:0;margin:0;line-height:1.2;max-height:48px;overflow:visible;\"><div class=\"cursor-pointer\" style=\"padding:0;margin:0;line-height:1.2;\" onclick=\"event.stopPropagation();window.showEventDetail && window.showEventDetail(JSON.parse(decodeURIComponent('${evJson}')))\">${window.getCardHTML ? window.getCardHTML(mode, color, icon, name, evData) : ''}</div></div>`;
             } else {
-                centerZone = `<div class=\"flex flex-col gap-0\">${normalEvents.map((ev, idx) => {
+                centerZone = `<div class=\"flex flex-col gap-0\">${normalEventsLimited.map((ev, idx) => {
                     const mode = ev.display_mode || 'block';
                     const color = ev.color || '#4F46E5';
                     const icon = ev.icon || 'calendar-blank';
@@ -262,13 +301,18 @@ requireAuth();
                     const evJson = encodeURIComponent(JSON.stringify(evData));
                     // Si es gradient, photo, transparent, block o detailed, usar contenedor base
                     if (['gradient','photo','transparent','block','detailed'].includes((mode || '').toLowerCase())) {
-                        return `<div class=\"w-full text-xs min-h-0 p-0 overflow-visible\" style=\"padding:0;margin:0;line-height:1.1;max-height:40px;overflow:visible;\"><div class=\"cursor-pointer\" style=\"padding:0;margin:0;line-height:1.1;margin-bottom:0;\" onclick=\"window.showEventDetail && window.showEventDetail(JSON.parse(decodeURIComponent('${evJson}')))\">${window.getCardHTML ? window.getCardHTML(mode, color, icon, name, evData) : ''}</div></div>`;
+                        return `<div class=\"w-full text-base min-h-0 p-0 overflow-visible\" style=\"padding:0;margin:0;line-height:1.2;max-height:48px;overflow:visible;\"><div class=\"cursor-pointer\" style=\"padding:0;margin:0;line-height:1.2;margin-bottom:0;\" onclick=\"event.stopPropagation();window.showEventDetail && window.showEventDetail(JSON.parse(decodeURIComponent('${evJson}')))\">${window.getCardHTML ? window.getCardHTML(mode, color, icon, name, evData) : ''}</div></div>`;
                     }
-                    return `<div class=\"event-card-preview cursor-pointer\" style=\"margin-bottom:0;\" onclick=\"window.showEventDetail && window.showEventDetail(JSON.parse(decodeURIComponent('${evJson}')))\">${window.getCardHTML ? window.getCardHTML(mode, color, icon, name, evData) : ''}</div>`;
+                    return `<div class=\"event-card-preview cursor-pointer text-base\" style=\"margin-bottom:0;\" onclick=\"event.stopPropagation();window.showEventDetail && window.showEventDetail(JSON.parse(decodeURIComponent('${evJson}')))\">${window.getCardHTML ? window.getCardHTML(mode, color, icon, name, evData) : ''}</div>`;
                 }).join('')}</div>`;
             }
         } else {
             centerZone = '<div class=\"flex-1\"></div>';
+        }
+
+        // Agregar botón '+N ver más' si hay eventos ocultos
+        if (showVerMas && verMasCount > 0) {
+            centerZone += `<button class=\"mt-1 mb-0 px-1.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 text-[10px] font-semibold hover:bg-indigo-200 transition w-fit mx-auto\" style=\"min-width:36px;min-height:18px;line-height:1;\" onclick=\"event.stopPropagation();window.showDayEventsModal && window.showDayEventsModal('${day.iso}')\">+${verMasCount} ver más</button>`;
         }
 
         // --- ZONA ABAJO: línea decorativa ---
@@ -285,7 +329,7 @@ requireAuth();
             overlay = `<div class=\"absolute inset-0 flex items-center justify-center opacity-20 pointer-events-none\"><i class=\"ph ph-${icon} text-4xl transform -rotate-12\" style=\"color:${color}\"></i></div>`;
             label = `<div class=\"absolute bottom-1 right-1 text-[6px] font-bold uppercase opacity-80 pointer-events-none\" style=\"color: ${color}\">${name}</div>`;
         }
-        return `<div class='${contClass}' style='${style}'>
+        return `<div class='${contClass}' style='${style}' ${openModal}>
             <div class='w-full h-full flex flex-col ${feriado ? 'bg-transparent p-1' : 'bg-white p-1'} relative z-10 min-h-0 flex-1'>
                 ${headerZone}
                 ${centerZone}
@@ -318,26 +362,105 @@ requireAuth();
         });
         const container = document.getElementById('calendarPreview');
         const weekDays = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
+        // Tamaño fijo para el calendario y celdas
+        const calendarWidth = 980; // px
+        const calendarHeight = 860; // px (aún más alto)
+        const cellWidth = Math.floor(calendarWidth / 7);
+        const cellHeight = Math.floor((calendarHeight - 48) / 4); // 48px header aprox
         container.innerHTML = `
-        <div class='w-full max-w-5xl bg-white shadow-lg overflow-hidden border border-gray-200 h-full flex flex-col max-h-[900px]' style='box-sizing:border-box; max-height:900px;'>
-            <div class='grid grid-cols-7 bg-gray-50 border-b border-gray-200'>
-                ${weekDays.map(day => `<div class='text-center py-2 font-bold text-gray-500 text-[15px] uppercase'>${day}</div>`).join('')}
-            </div>
-            <div class='grid grid-cols-7 grid-rows-4 gap-px text-[16px] text-gray-700 flex-1 min-h-0 mx-auto p-0 h-full'>
-            ${days.map((d,i)=>{
-                const dayEvents = events.filter(e => {
-                    // Asegurar que la comparación sea solo por fecha (YYYY-MM-DD)
-                    const evDate = (e.event_date||'').slice(0,10);
-                    return evDate === d.iso;
-                });
-                return renderCellPreview(d, dayEvents);
-            }).join('')}
+        <div class='mx-auto my-8' style='width:${calendarWidth}px;height:${calendarHeight}px;display:flex;align-items:center;justify-content:center;'>
+            <div class='bg-white shadow-lg border border-gray-200 rounded-2xl w-full h-full flex flex-col overflow-hidden' style='box-sizing:border-box;'>
+                <div class='grid grid-cols-7 bg-gray-50 border-b border-gray-200 rounded-t-2xl' style='height:48px;'>
+                    ${weekDays.map(day => `<div class='text-center flex items-center justify-center font-bold text-gray-500 text-[15px] uppercase' style='width:${cellWidth}px;height:48px;'>${day}</div>`).join('')}
+                </div>
+                <div class='grid grid-cols-7 grid-rows-4 gap-px text-[16px] text-gray-700 rounded-b-2xl bg-gray-100 flex-1' style='width:100%;height:${calendarHeight-48}px;'>
+                ${days.map((d,i)=>{
+                    const dayEvents = events.filter(e => {
+                        // Asegurar que la comparación sea solo por fecha (YYYY-MM-DD)
+                        const evDate = (e.event_date||'').slice(0,10);
+                        return evDate === d.iso;
+                    });
+                    // Agregar data-day para identificar la celda
+                    return `<div style='width:${cellWidth}px;height:${cellHeight}px;background:white;' class='overflow-visible calendar-day-cell' data-day='${d.iso}'>${renderCellPreview(d, dayEvents)}</div>`;
+                }).join('')}
+                </div>
             </div>
         </div>`;
+        // Agregar listeners para abrir el modal solo si el click es en la celda y no sobre un evento
+        setTimeout(() => {
+            document.querySelectorAll('.calendar-day-cell').forEach(cell => {
+                cell.addEventListener('click', function(e) {
+                    // Si el click fue sobre un evento o el botón ver más, no abrir
+                    if (
+                        e.target.closest('.event-card-preview') ||
+                        e.target.closest('button')
+                    ) return;
+                    const day = this.getAttribute('data-day');
+                    if (day) window.showDayEventsModal && window.showDayEventsModal(day);
+                });
+            });
+        }, 10);
     }
+    // Modal de eventos del día
+    function showDayEventsModal(dayIso) {
+        const day = dayIso;
+        const dayEvents = eventos.filter(e => (e.event_date||'').slice(0,10) === day);
+        const titleDate = new Date(day);
+        const title = titleDate.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        document.getElementById('dayEventsModalTitle').innerHTML = `<div class='text-center font-bold text-xl mb-1'>Detalle del día</div><div class='text-center text-base text-gray-600 mb-2'>${title.charAt(0).toUpperCase() + title.slice(1)}</div>`;
+        const content = document.getElementById('dayEventsModalContent');
+        // Restaurar estilos originales del grid
+        content.style.fontSize = '';
+        content.style.padding = '';
+        content.style.maxWidth = '';
+        content.style.minWidth = '';
+        if (dayEvents.length === 0) {
+            content.innerHTML = '<div class="text-gray-400">Sin eventos</div>';
+        } else {
+            // Mostrar la celda ampliada usando renderCellPreview, sin límite de eventos ni agrupación
+            const dayObj = {
+                num: (new Date(day)).getDate(),
+                dow: (new Date(day)).toLocaleDateString('es-ES', { weekday: 'short' }).toUpperCase().replace('.',''),
+                iso: day
+            };
+            window.__renderAllEvents = true;
+            content.innerHTML = `<div class='modal-event-cards' style="max-width:820px;width:96%;margin:0 auto;">${renderCellPreview(dayObj, dayEvents)}</div>`;
+            window.__renderAllEvents = false;
+        }
+        document.getElementById('dayEventsModal').classList.remove('hidden');
+    }
+    document.getElementById('closeDayEventsModal').onclick = function() {
+        document.getElementById('dayEventsModal').classList.add('hidden');
+    };
+    window.showDayEventsModal = showDayEventsModal;
     // Exponer showEventDetail globalmente
     window.showEventDetail = showEventDetail;
     </script>
+    </body>
+    <style>
+    /* Solo aumentar tamaño de tarjetas de evento dentro del modal */
+    .modal-event-cards .event-card-preview {
+        font-size: 1.35em !important;
+        padding: 12px 14px !important;
+    }
+    /* Hacer el grid del modal más ancho y las tarjetas ocupen todo el ancho */
+    .modal-day-grid {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+    }
+    .modal-day-grid .event-card-preview {
+        width: 100%;
+        box-sizing: border-box;
+    }
+    .modal-event-cards {
+        max-width: 820px;
+        width: 96%;
+        margin-left: auto;
+        margin-right: auto;
+        display: block;
+    }
+    </style>
 </body>
     <?php include 'includes/footer.php'; ?>
 </body>
