@@ -171,17 +171,32 @@ if ($action === 'get_all' && $method === 'GET') {
                 $av = !empty($u['avatar']) ? 'data:image/jpeg;base64,'.base64_encode($u['avatar']) : null;
                 
                 $finalEvents[] = [
-                    'id' => 'usr_bday_'.$u['id'].'_'.$year, 'title' => trim($u['first_name'].' '.$u['last_name']),
-                    'start' => $bDate, 'allDay' => true, 'type' => 'birthday', 'type_name' => $bConf['name'],
-                    'color' => $bConf['color'], 'display_mode' => $bConf['display_mode'], 'icon' => $bConf['icon'],
-                    'visibility' => 'public', 'status' => 'approved', 'creator_name' => 'Sistema',
-                    'image_url' => $av, 'editable' => false, 'age' => $age, 'order' => 5
+                    'id' => 'usr_bday_'.$u['id'].'_'.$year,
+                    'title' => trim($u['first_name'].' '.$u['last_name']),
+                    'start' => $bDate,
+                    'allDay' => true,
+                    'type' => 'birthday',
+                    'type_name' => $bConf['name'],
+                    'color' => $bConf['color'],
+                    'display_mode' => $bConf['display_mode'],
+                    'icon' => $bConf['icon'],
+                    'visibility' => 'public',
+                    'status' => 'approved',
+                    'creator_name' => 'Sistema',
+                    'image_url' => $av,
+                    'editable' => false,
+                    'age' => $age,
+                    'birthdate' => $u['birthdate'],
+                    'order' => 5
                 ];
             }
         }
     }
     
     usort($finalEvents, function($a, $b) { return strcmp($a['start'], $b['start']); });
+
+        // DEBUG: Mostrar los datos de los eventos antes de enviar
+        file_put_contents(__DIR__.'/debug_events.log', print_r($finalEvents, true));
     
     sendJson($context==='calendar' ? $finalEvents : ['data'=>$finalEvents, 'total'=>$total]);
 }

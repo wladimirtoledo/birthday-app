@@ -56,7 +56,20 @@
                     contentHTML = `<img src="${ev.image_url}" alt="foto" style="width: 18px; height: 18px; border-radius: 6px; object-fit: cover; margin-right: 6px; flex-shrink: 0;">` +
                         `<span style="padding: 0 2px; font-size: 11px; color: #374151; font-weight: 500;">${name}</span>`;
                 } else {
-                    contentHTML = `<div style="width: 18px; height: 18px; background-color: #f3f4f6; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border-radius: 6px;"><i class="ph-fill ph-image text-[10px] text-gray-400"></i></div><span style="padding: 0 2px; font-size: 11px; color: #374151; font-weight: 500;">${name}</span>`;
+                    // Mostrar edad aunque no haya imagen
+                    let edadHtml = '';
+                    if (ev && ev.type_slug === 'birthday' && ev.birthdate && ev.start) {
+                        const birthYear = String(ev.birthdate).slice(0,4);
+                        const eventYear = String(ev.start).slice(0,4);
+                        let edad = '';
+                        if (birthYear && eventYear) {
+                            edad = (parseInt(eventYear)-parseInt(birthYear)).toString();
+                        }
+                        if (birthYear !== '1000' && edad) {
+                            edadHtml = `<div style='color:#6366f1;font-weight:bold;font-size:10px;line-height:1;'>${edad} años</div>`;
+                        }
+                    }
+                    contentHTML = `<div style="width: 18px; height: 18px; background-color: #f3f4f6; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border-radius: 6px;"><i class="ph-fill ph-image text-[10px] text-gray-400"></i></div><span style="padding: 0 2px; font-size: 11px; color: #374151; font-weight: 500;">${name}</span>` + edadHtml;
                 }
             }
 
@@ -98,13 +111,27 @@
                         </div>
                     `;
                 } else {
+                    // Mostrar edad aunque no haya imagen
+                    let edadHtml = '';
+                    if (ev && ev.type_slug === 'birthday' && ev.birthdate && ev.start) {
+                        const birthYear = String(ev.birthdate).slice(0,4);
+                        const eventYear = String(ev.start).slice(0,4);
+                        let edad = '';
+                        if (birthYear && eventYear) {
+                            edad = (parseInt(eventYear)-parseInt(birthYear)).toString();
+                        }
+                        if (birthYear !== '1000' && edad) {
+                            edadHtml = `<span style='color:#6366f1;font-weight:bold;font-size:10px;line-height:1;'>${edad} años</span>`;
+                        }
+                    }
                     contentHTML = `
                         <div style="width: 18px; height: 18px; border-radius: 50%; background-color: ${bgIcon}; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: ${color}; box-shadow: inset 0 0 0 1px ${color}20;">
                             <i class="ph-fill ph-${icon}" style="font-size:12px;"></i>
                         </div>
                         <div style="display: flex; flex-direction: column; overflow: hidden; justify-content: center;">
                             <span style="font-weight: 700; font-size: 10px; color: #1e293b; line-height: 1.1;">${name}</span>
-                            <span style="font-size: 8px; color: #64748b; margin-top: 0;">Detalles...</span>
+                            ${edadHtml}
+                            <span style="font-size: 8px; color: #64748b; margin-top: 0;">Cumpleaños</span>
                         </div>
                     `;
                 }
@@ -123,7 +150,7 @@
             let nm;
             let html;
             // Unificar tarjeta de cumpleaños en todos los modos visuales
-            if (ev && ev.type === 'birthday') {
+            if (ev && ev.type_slug === 'birthday') {
                 const c = color || '#4F46E5';
                 let nombre = ev.title || '';
                 let edad = (ev.age && !isNaN(ev.age)) ? ` (${ev.age})` : '';

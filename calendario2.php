@@ -98,6 +98,7 @@ requireAuth();
                     'type_slug' => 'birthday',
                     'display_mode' => $birthday_display_mode,
                     'icon' => $birthday_icon,
+                    'birthdate' => $user['birthdate'],
                 ];
             }
         }
