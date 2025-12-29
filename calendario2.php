@@ -49,7 +49,7 @@ requireAuth();
         </div>
         <!-- Modal Día Completo -->
         <div id="dayEventsModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 hidden">
-            <div class="bg-white rounded-2xl shadow-2xl w-[96vw] max-w-sm h-[85vh] flex flex-col p-6 relative mx-auto" style="left:0;right:0;top:0;bottom:0;">
+            <div class="bg-white rounded-2xl shadow-2xl w-[96vw] max-w-sm h-[65vh] flex flex-col p-6 relative mx-auto" style="left:0;right:0;top:0;bottom:0;">
                 <button id="closeDayEventsModal" class="absolute top-3 right-4 text-gray-400 hover:text-red-500 text-2xl">&times;</button>
                 <div id="dayEventsModalTitle" class="text-2xl font-bold text-gray-800 mb-2 text-center"></div>
                 <div id="dayEventsModalContent" class="modal-day-grid flex-1 overflow-y-auto grid grid-cols-1 gap-4 py-2 fancy-scroll w-full mx-auto justify-items-center" style="width:100%;max-width:100%;min-width:0;"></div>
